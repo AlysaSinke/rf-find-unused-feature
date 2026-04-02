@@ -8,21 +8,21 @@ Set Padding 20
 Set Margin 0
 Set CursorBlink false
 
-Require robotunused
+Require rf-unused-feature
 
-Type "robotunused files"
+Type "rf-unused-feature files"
 Sleep 200ms
 Enter
 Wait
 Sleep 7s
 
-Type "robotunused files --show-count"
+Type "rf-unused-feature files --show-count"
 Sleep 1200ms
 Enter
 Wait
 Sleep 8s
 
-Type "robotunused files --show-tree"
+Type "rf-unused-feature files --show-tree"
 Sleep 1200ms
 Enter
 Wait

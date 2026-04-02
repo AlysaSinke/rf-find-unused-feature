@@ -65,7 +65,7 @@ def build_gifs(c: Context):
             (
                 "docker build",
                 f"-f {Path('./docs/build/gif-builder.dockerfile').absolute().as_posix()}",
-                "-t vhs-robotunused",
+                "-t vhs-rf-unused-feature",
                 ".",
             ),
         ),
@@ -77,7 +77,7 @@ def build_gifs(c: Context):
                 "-i",
                 "--rm",
                 f"-v {Path().absolute().as_posix()}:/app",
-                "vhs-robotunused",
+                "vhs-rf-unused-feature",
                 "/app/docs/build/gif-builder.sh",
             ),
         ),

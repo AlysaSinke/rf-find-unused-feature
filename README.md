@@ -29,7 +29,7 @@ This is a command-line tool.
 2. Run the following command to show available options:
 
     ```shell
-    robotunused --help
+    rf-unused-feature --help
     ```
 
 ### Find unused keywords
@@ -40,14 +40,14 @@ Walk through your `.robot`, `.resource`, and `.py` files. In those files, count 
 keyword is used (called). Keywords with 0 uses are logged.
 
 ```shell
-robotunused keywords
+rf-unused-feature keywords
 ```
 
 Please note that there are limitations. For an overview of current limitations, run the following
 command:
 
 ```shell
-robotunused keywords --help
+rf-unused-feature keywords --help
 ```
 
 #### Available options
@@ -72,14 +72,14 @@ argument is used during a keyword call. Arguments with 0 uses are logged.
 By default, will ignore arguments from unused keywords.
 
 ```shell
-robotunused arguments
+rf-unused-feature arguments
 ```
 
 Please note that there are limitations. For an overview of current limitations, run the following
 command:
 
 ```shell
-robotunused arguments --help
+rf-unused-feature arguments --help
 ```
 
 #### Available options
@@ -105,14 +105,14 @@ are logged.
 By default, will ignore arguments from unused keywords.
 
 ```shell
-robotunused returns
+rf-unused-feature returns
 ```
 
 Please note that there are limitations. For an overview of current limitations, run the following
 command:
 
 ```shell
-robotunused returns --help
+rf-unused-feature returns --help
 ```
 
 #### Available options
@@ -135,14 +135,14 @@ Walk through your `.robot` and `.resource` files. In those files, count how ofte
 variable is used. Variables defined in a variables section or variable file with 0 uses are logged.
 
 ```shell
-robotunused variables
+rf-unused-feature variables
 ```
 
 Please note that there are limitations. For an overview of current limitations, run the following
 command:
 
 ```shell
-robotunused variables --help
+rf-unused-feature variables --help
 ```
 
 #### Available options
@@ -161,14 +161,14 @@ For each of your `.robot` files, follow the full chain of imports. Files that ar
 imported by a `.robot` file are logged.
 
 ```shell
-robotunused files
+rf-unused-feature files
 ```
 
 Please note that there are limitations. For an overview of current limitations, run the following
 command:
 
 ```shell
-robotunused files --help
+rf-unused-feature files --help
 ```
 
 #### Available options

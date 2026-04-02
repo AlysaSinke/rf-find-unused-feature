@@ -8,15 +8,15 @@ Set Padding 20
 Set Margin 0
 Set CursorBlink false
 
-Require robotunused
+Require rf-unused-feature
 
-Type "robotunused keywords"
+Type "rf-unused-feature keywords"
 Sleep 200ms
 Enter
 Wait
 Sleep 7s
 
-Type "robotunused keywords --show-count"
+Type "rf-unused-feature keywords --show-count"
 Sleep 1200ms
 Enter
 Wait
