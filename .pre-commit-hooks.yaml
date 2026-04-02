@@ -1,0 +1,7 @@
+- id: rf-unused-feature
+  name: rf-find-unused
+  entry: rf-unused-feature
+  language: python
+  types: [file]
+  files: \.(robot|resource|feature)$
+  pass_filenames: false
