@@ -19,6 +19,8 @@ dependencies = [
     "robotframework-robocop (>=6.0.0)",
     # Required for robocop 6 and 7: https://github.com/MarketSquare/robotframework-robocop/issues/1679
     "typing-extensions>=4.15.0",
+    # Gherkin parser for .feature file support
+    "gherkin-official (>=29.0.0)",
 ]
 
 [dependency-groups]

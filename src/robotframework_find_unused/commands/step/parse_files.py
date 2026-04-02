@@ -11,6 +11,7 @@ from robotframework_find_unused.common.const import (
     WARN_MARKER,
 )
 from robotframework_find_unused.parse.libdoc import parse_files_with_libdoc
+from robotframework_find_unused.visitors.gherkin import filter_robot_files
 
 
 def cli_step_parse_files_with_libdoc(file_paths: list[Path], *, verbose: int) -> list[LibraryDoc]:
@@ -19,7 +20,10 @@ def cli_step_parse_files_with_libdoc(file_paths: list[Path], *, verbose: int) ->
     """
     click.echo("Parsing files with LibDoc...")
 
-    (parsed_files, errors) = parse_files_with_libdoc(file_paths)
+    # LibDoc cannot parse .feature files, so filter them out
+    robot_files = filter_robot_files(file_paths)
+
+    (parsed_files, errors) = parse_files_with_libdoc(robot_files)
 
     _log_file_errors(errors)
     _log_file_stats(parsed_files, verbose)

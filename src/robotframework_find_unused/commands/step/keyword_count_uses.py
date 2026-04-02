@@ -10,6 +10,11 @@ from robotframework_find_unused.common.const import (
     KeywordData,
     LibraryData,
 )
+from robotframework_find_unused.visitors.gherkin import (
+    count_keyword_uses_in_feature_files,
+    filter_feature_files,
+    filter_robot_files,
+)
 from robotframework_find_unused.visitors.robot import visit_robot_files
 from robotframework_find_unused.visitors.robot.keyword_visitor import RobotVisitorKeywords
 
@@ -26,12 +31,12 @@ def cli_count_keyword_uses(
     """
     click.echo("Counting keyword usage...")
 
-    counted_keywords = _count_keyword_uses(
+    counted_keywords, feature_step_count = _count_keyword_uses(
         file_paths,
         keywords,
         downloaded_library_keywords,
     )
-    _log_keyword_call_stats(counted_keywords, verbose)
+    _log_keyword_call_stats(counted_keywords, feature_step_count, verbose)
 
     unknown_keywords = [kw for kw in counted_keywords if kw.type == "UNKNOWN"]
     _log_unknown_keyword_stats(unknown_keywords, verbose)
@@ -43,16 +48,34 @@ def _count_keyword_uses(
     file_paths: list[Path],
     keywords: list[KeywordData],
     downloaded_library_keywords: list[LibraryData],
-) -> list[KeywordData]:
+) -> tuple[list[KeywordData], int]:
     """
-    Walk through all robot files to count keyword uses.
+    Walk through all robot and feature files to count keyword uses.
+
+    Returns tuple of (counted_keywords, feature_step_count)
     """
+    # Separate robot files from feature files
+    robot_files = filter_robot_files(file_paths)
+    feature_files = filter_feature_files(file_paths)
+
+    # Process robot files with the standard visitor
     visitor = RobotVisitorKeywords(keywords, downloaded_library_keywords)
-    visit_robot_files(file_paths, visitor)
-    return list(visitor.keywords.values())
+    visit_robot_files(robot_files, visitor)
+
+    # Process feature files using the same keyword matcher
+    feature_step_count = count_keyword_uses_in_feature_files(
+        feature_files,
+        visitor.kw_matcher,
+    )
+
+    return list(visitor.keywords.values()), feature_step_count
 
 
-def _log_keyword_call_stats(keywords: list[KeywordData], verbose: int) -> None:
+def _log_keyword_call_stats(
+    keywords: list[KeywordData],
+    feature_step_count: int,
+    verbose: int,
+) -> None:
     """
     Output details on calls to the given keywords to the user
     """
@@ -61,6 +84,9 @@ def _log_keyword_call_stats(keywords: list[KeywordData], verbose: int) -> None:
         (WARN_MARKER if total_uses == 0 else DONE_MARKER)
         + f" Processed {total_uses} keyword calls",
     )
+
+    if feature_step_count > 0:
+        click.echo(f"{INDENT}Including {feature_step_count} steps from .feature files")
 
     if verbose == VERBOSE_NO:
         return

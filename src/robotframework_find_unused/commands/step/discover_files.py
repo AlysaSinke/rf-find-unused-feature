@@ -14,7 +14,7 @@ from robotframework_find_unused.common.const import (
     VERBOSE_SINGLE,
 )
 
-FILE_EXTENSIONS = {"*.robot", "*.resource", "*.py"}
+FILE_EXTENSIONS = {"*.robot", "*.resource", "*.py", "*.feature"}
 
 
 def cli_discover_file_paths(input_path: str, *, verbose: int) -> list[Path]:

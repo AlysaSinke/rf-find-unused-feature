@@ -42,6 +42,8 @@ def pretty_file_path(path: str, file_types: set[FileUseType]) -> str:  # noqa: P
         return click.style(path, fg="bright_magenta")
     if file_type == "VARIABLE":
         return click.style(path, fg="bright_green")
+    if file_type == "FEATURE":
+        return click.style(path, fg="bright_blue")
 
     msg = f"Unexpected file type {file_type}"
     raise ValueError(msg)

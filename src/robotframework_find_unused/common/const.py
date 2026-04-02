@@ -101,6 +101,7 @@ FileUseType: TypeAlias = Literal[
     "RESOURCE",
     "LIBRARY",
     "VARIABLE",
+    "FEATURE",
 ]
 
 
@@ -112,3 +113,57 @@ class FileUsedByData:
     as_alias: str | None
     normalized_as_alias: str | None
     args: tuple[str, ...]
+
+
+# Gherkin/Feature file data structures
+
+
+@dataclass
+class GherkinStepData:
+    """Data structure for a Gherkin step (Given/When/Then/And/But)"""
+
+    keyword: str
+    """The Gherkin keyword (Given, When, Then, And, But, *)"""
+
+    text: str
+    """The step text after the keyword"""
+
+    line: int
+    """Line number in the feature file"""
+
+
+@dataclass
+class GherkinScenarioData:
+    """Data structure for a Gherkin Scenario or Scenario Outline"""
+
+    name: str
+    """Scenario name"""
+
+    steps: list[GherkinStepData]
+    """Steps in this scenario"""
+
+    is_outline: bool
+    """True if this is a Scenario Outline with Examples"""
+
+    line: int
+    """Line number where scenario starts"""
+
+
+@dataclass
+class GherkinFeatureData:
+    """Data structure for a parsed Gherkin feature file"""
+
+    file_path: Path
+    """Path to the feature file"""
+
+    name: str
+    """Feature name"""
+
+    background_steps: list[GherkinStepData]
+    """Background steps that apply to all scenarios"""
+
+    scenarios: list[GherkinScenarioData]
+    """All scenarios in the feature"""
+
+    tags: list[str]
+    """Feature-level tags"""

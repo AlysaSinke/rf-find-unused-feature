@@ -165,7 +165,8 @@ def _cli_log_file_import_warnings_lines_gen(
 def _cli_log_results(files: list[FileUseData], options: FileOptions) -> None:
     click.echo()
 
-    files = [f for f in files if "SUITE" not in f.type]
+    # Exclude SUITE and FEATURE files - these are test entry points, not imports
+    files = [f for f in files if "SUITE" not in f.type and "FEATURE" not in f.type]
     files = cli_filter_file_imports(
         files,
         filter_library=options.library_files,
@@ -245,7 +246,11 @@ def _cli_print_grouped_file_trees(files: list[FileUseData], options: FileOptions
 
 
 def _exit_code(files: list[FileUseData]) -> int:
-    unused_files = [f for f in files if "SUITE" not in f.type and len(f.used_by) == 0]
+    # Exclude SUITE and FEATURE files - these are test entry points, not imports
+    unused_files = [
+        f for f in files
+        if "SUITE" not in f.type and "FEATURE" not in f.type and len(f.used_by) == 0
+    ]
 
     exit_code = len(unused_files)
     return min(exit_code, 200)
