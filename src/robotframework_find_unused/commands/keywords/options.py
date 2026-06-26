@@ -16,4 +16,5 @@ class KeywordOptions:
     unused_library_keywords: FilterOption
     keyword_filter_glob: str | None
     verbose: int
+    pythonpath: list[str]
     source_path: str

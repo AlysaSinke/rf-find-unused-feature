@@ -93,6 +93,24 @@ def cli():
     help="How to output unused keywords from downloaded libraries",
 )
 @click.option(
+    "--pythonpath",
+    type=click.types.STRING,
+    default=[],
+    multiple=True,
+    show_default=False,
+    metavar="<path>",
+    envvar="PYTHONPATH",
+    help="""
+        Same as --pythonpath in Robotframework:
+        Additional locations (directories, ZIPs) where to
+        search libraries and other extensions when they are
+        imported. Multiple paths can be given by separating
+        them with a colon (`:`) or by using this option
+        several times. Given path can also be a glob pattern
+        matching multiple paths.
+    """,
+)
+@click.option(
     "-v",
     "--verbose",
     default=False,
@@ -107,6 +125,7 @@ def keywords(  # noqa: PLR0913
     private: FilterOption,
     library: FilterOption,
     unused_library: FilterOption,
+    pythonpath: list[str],
     verbose: int,
     file_path: str,
 ):
@@ -166,6 +185,7 @@ def keywords(  # noqa: PLR0913
         unused_library_keywords=unused_library,
         keyword_filter_glob=filter,
         show_all_count=show_count,
+        pythonpath=pythonpath,
         verbose=verbose,
     )
     reporter = KeywordCliReporter(options)

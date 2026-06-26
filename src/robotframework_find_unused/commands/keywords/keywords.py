@@ -15,6 +15,7 @@ from robotframework_find_unused.commands.step.lib_keyword_definitions import (
     step_get_downloaded_lib_keywords,
 )
 from robotframework_find_unused.commands.step.parse_files import step_parse_files_with_libdoc
+from robotframework_find_unused.common.pythonpath import apply_pythonpath
 
 if TYPE_CHECKING:
     from robotframework_find_unused.reporter.base.keyword_reporter import KeywordReporter
@@ -27,6 +28,8 @@ def command_keywords(options: "KeywordOptions", reporter: "KeywordReporter") -> 
     Entry point for the CLI command 'keywords'
     """
     reporter.on_command_start()
+
+    apply_pythonpath(options.pythonpath)
 
     file_paths = step_discover_file_paths(options.source_path, reporter=reporter)
     if file_paths is None:
