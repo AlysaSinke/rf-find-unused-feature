@@ -12,6 +12,7 @@ def libdoc_keyword_to_keyword_data(
     libdoc: KeywordDoc,
     keyword_type: Literal["CUSTOM_SUITE", "CUSTOM_LIBRARY", "CUSTOM_RESOURCE", "LIBRARY"],
     keyword_returns: bool | None = None,
+    python_call_targets_normalized: set[str] | None = None,
 ):
     """
     Convert a Libdoc keyword to the internally used data structure
@@ -37,6 +38,7 @@ def libdoc_keyword_to_keyword_data(
         returns=keyword_returns,
         return_use_count=0,
         type=keyword_type,
+        python_call_targets_normalized=python_call_targets_normalized,
     )
 
 

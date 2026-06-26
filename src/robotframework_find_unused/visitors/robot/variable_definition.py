@@ -36,6 +36,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
     root_directory: Path
     discovered_files: set[Path]
     variables: dict[str, VariableData]
+    include_yaml_variable_files: bool
     current_working_file: Path | None = None
     current_working_directory: Path | None = None
 
@@ -44,11 +45,14 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
         root_directory: Path,
         discovered_files: set[Path] | None,
         reporter: "VariableReporter",
+        *,
+        include_yaml_variable_files: bool,
     ) -> None:
         self.root_directory = root_directory.absolute()
         self.discovered_files = discovered_files or set()
         self.reporter = reporter
         self.variables = {}
+        self.include_yaml_variable_files = include_yaml_variable_files
         super().__init__()
 
     def visit_File(self, node: "File"):  # noqa: N802
@@ -64,7 +68,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
         Look for variable declarations in the variables section.
         """
         if self.current_working_file is None:
-            msg = "Found variables section outside a .robot or .resource file"
+            msg = "Found variables section outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
         for var_node in node.body:
@@ -85,7 +89,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
         Look for variable declarations in variable files.
         """
         if self.current_working_directory is None or self.current_working_file is None:
-            msg = "Found variables file import outside a .robot or .resource file"
+            msg = "Found variables file import outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
         try:
@@ -96,7 +100,14 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
                 self.discovered_files,
             )
             if import_path:
-                self._import_variable_file(Path(import_path.path), node.args)
+                variable_file_path = Path(import_path.path)
+                if (
+                    not self.include_yaml_variable_files
+                    and variable_file_path.suffix.lower() in (".yaml", ".yml")
+                ):
+                    return self.generic_visit(node)
+
+                self._import_variable_file(variable_file_path, node.args)
         except Exception as e:  # noqa: BLE001
             from_path = to_relative_path(self.root_directory, self.current_working_file)
             self.reporter.on_file_import_error(e, node.name, from_path)
@@ -112,7 +123,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             return
 
         if self.current_working_file is None:
-            msg = "Found keyword call outside a .robot or .resource file"
+            msg = "Found keyword call outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
         (var_name, *var_value) = node.args
@@ -131,7 +142,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             return
 
         if self.current_working_file is None:
-            msg = "Found VAR syntax outside a .robot or .resource file"
+            msg = "Found VAR syntax outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
         self._register_variable(

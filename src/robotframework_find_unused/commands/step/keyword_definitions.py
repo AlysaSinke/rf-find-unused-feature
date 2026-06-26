@@ -56,11 +56,14 @@ def _get_custom_keyword_definitions(
         if file_type == "CUSTOM_LIBRARY" and enrich_py_keywords:
             enriched_keywords = enrich_python_keyword_data(file)
             for keyword in enriched_keywords:
+                if not keyword.is_local_definition:
+                    continue
                 keywords.append(
                     libdoc_keyword_to_keyword_data(
                         keyword.doc,
                         file_type,
                         keyword.returns,
+                        keyword.python_call_targets_normalized,
                     ),
                 )
         else:

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from robotframework_find_unused.commands.step.file_types import filter_keyword_definition_files
 from robotframework_find_unused.common.const import VariableData
 from robotframework_find_unused.common.normalize import normalize_variable_name
 from robotframework_find_unused.reporter.base.variable_reporter import VariableReporter
@@ -14,6 +15,7 @@ def step_get_variable_definitions(
     file_paths: list[Path],
     source_path: Path,
     *,
+    include_yaml_variable_files: bool,
     reporter: VariableReporter,
 ):
     """
@@ -21,12 +23,21 @@ def step_get_variable_definitions(
     """
     reporter.on_get_variable_definitions_start(file_paths, source_path)
 
-    visitor = RobotVisitorVariableDefinitions(source_path, set(file_paths), reporter)
-    visit_robot_files(file_paths, visitor)
+    definition_file_paths = [
+        p for p in filter_keyword_definition_files(file_paths) if p.suffix.lower() in (".robot", ".resource")
+    ]
+
+    visitor = RobotVisitorVariableDefinitions(
+        source_path,
+        set(file_paths),
+        reporter,
+        include_yaml_variable_files=include_yaml_variable_files,
+    )
+    visit_robot_files(definition_file_paths, visitor)
 
     variables = _resolve_vars_in_var_name(visitor.variables)
 
-    reporter.on_get_variable_definitions_end(file_paths, source_path, variables)
+    reporter.on_get_variable_definitions_end(definition_file_paths, source_path, variables)
     return variables
 
 

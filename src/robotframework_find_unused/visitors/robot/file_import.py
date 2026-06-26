@@ -258,7 +258,7 @@ class RobotVisitorFileImports(ModelVisitor):
         file_type: Literal["RESOURCE", "LIBRARY", "VARIABLE"],
     ) -> None:
         if self.current_working_file is None:
-            msg = "Registering import outside a .robot or .resource file"
+            msg = "Registering import outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
         if isinstance(resolved_import.path, Path):
@@ -303,7 +303,7 @@ class RobotVisitorFileImports(ModelVisitor):
         ],
     ) -> ResolvedFileImport | None:
         if self.current_working_directory is None or self.current_working_file is None:
-            msg = "Found import outside a .robot or .resource file"
+            msg = "Found import outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
         try:

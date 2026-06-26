@@ -40,6 +40,7 @@ class KeywordData:
 
     arguments: ArgumentSpec | None
     library: str
+    python_call_targets_normalized: set[str] | None = None
 
 
 VariableDefinedInType: TypeAlias = Literal["variables_section", "variable_file", "runtime"]

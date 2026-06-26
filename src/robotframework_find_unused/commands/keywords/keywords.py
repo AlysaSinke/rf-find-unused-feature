@@ -5,6 +5,7 @@ Implementation of the 'keywords' command
 from typing import TYPE_CHECKING
 
 from robotframework_find_unused.commands.step.discover_files import step_discover_file_paths
+from robotframework_find_unused.commands.step.file_types import filter_keyword_definition_files
 from robotframework_find_unused.commands.step.keyword_count_uses import step_count_keyword_uses
 from robotframework_find_unused.commands.step.keyword_definitions import (
     step_get_custom_keyword_definitions,
@@ -31,9 +32,15 @@ def command_keywords(options: "KeywordOptions", reporter: "KeywordReporter") -> 
     if file_paths is None:
         return
 
-    files = step_parse_files_with_libdoc(file_paths, reporter=reporter)
+    definition_file_paths = filter_keyword_definition_files(file_paths)
 
-    keywords = step_get_custom_keyword_definitions(files, reporter=reporter)
+    files = step_parse_files_with_libdoc(definition_file_paths, reporter=reporter)
+
+    keywords = step_get_custom_keyword_definitions(
+        files,
+        reporter=reporter,
+        enrich_py_keywords=True,
+    )
     if len(keywords) == 0 and options.library_keywords == "exclude":
         return
 

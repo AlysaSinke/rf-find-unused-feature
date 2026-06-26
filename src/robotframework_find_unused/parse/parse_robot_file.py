@@ -4,6 +4,8 @@ from typing import Literal, TypeAlias
 
 import robot.api.parsing
 
+from robotframework_find_unused.parse.parse_feature_file import parse_feature_file
+
 # Limitation: No localisation
 RobotFileSectionName: TypeAlias = Literal[
     "comments",
@@ -25,7 +27,14 @@ def parse_robot_file(
 
     Can skip entire sections but keeps the section headers.
     """
-    if parse_sections == "all" or file_path.suffix.lower() not in [".robot", ".resource"]:
+    suffix = file_path.suffix.lower()
+    if suffix == ".feature":
+        file_content = parse_feature_file(file_path)
+        model = robot.api.parsing.get_model(file_content, data_only=True)
+        model.source = file_path
+        return model
+
+    if parse_sections == "all" or suffix not in [".robot", ".resource"]:
         return robot.api.parsing.get_model(file_path, data_only=True)
 
     file_content = _get_partial_file_content(file_path, parse_sections)

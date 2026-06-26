@@ -1,0 +1,27 @@
+Discovering files in `./robot_test_data` using Robocop config...
+Gathering variables definitions...
+[ DONE ] Found 20 unique non-local variables definitions
+Counting variable usage...
+[ DONE ] Found 2 variable uses of gathered variables
+
+use_count	variable
+0	${class_var_from_python_class_file}
+0	${dynamic_init_var_from_python_class_file}
+0	${dynamic_var_from_python_dynamic_class_file}
+0	${dynamic_var_from_python_dynamic_class_file_using_user_args}
+0	${dynamic_var_from_python_function_file}
+0	${dynamic_var_from_python_function_file_using_user_args}
+0	${dynamic_var_from_python_module_file}
+0	${dynamic_var_from_python_module_file_using_all}
+0	${static_init_var_from_python_class_file}
+0	${static_var_from_python_dynamic_class_file}
+0	${static_var_from_python_function_file}
+0	${static_var_from_python_function_file_using_user_args}
+0	${static_var_from_python_module_file}
+0	${static_var_from_python_module_file_using_all}
+0	${var_from_json_file}
+0	${var_from_resource_file}
+0	${var_from_robot_file}
+0	${var_from_yaml_file}
+1	&{dict_var_from_json_file}
+1	@{list_var_from_json_file}

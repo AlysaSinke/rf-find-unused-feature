@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from robotframework_find_unused.commands.step.file_types import filter_robot_like_files
 from robotframework_find_unused.visitors.robot import visit_robot_files
 from robotframework_find_unused.visitors.robot.library_import import RobotVisitorLibraryImports
 
@@ -24,7 +25,7 @@ def step_get_downloaded_lib_keywords(
     """
     reporter.on_get_downloaded_keyword_definitions_start(file_paths)
 
-    robot_file_paths = [p for p in file_paths if p.suffix in (".resource", ".robot")]
+    robot_file_paths = filter_robot_like_files(file_paths)
 
     visitor = RobotVisitorLibraryImports(reporter, enrich_py_keywords=enrich_py_keywords)
     visit_robot_files(robot_file_paths, visitor)

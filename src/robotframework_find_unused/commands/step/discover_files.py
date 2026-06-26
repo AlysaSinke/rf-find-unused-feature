@@ -6,7 +6,7 @@ from robotframework_find_unused.reporter.base.partial.discover_files import (
     PartialReporter_DiscoverFiles,
 )
 
-FILE_EXTENSIONS = {"*.robot", "*.resource", "*.py"}
+FILE_EXTENSIONS = {"*.robot", "*.resource", "*.feature", "*.py"}
 
 
 def step_discover_file_paths(

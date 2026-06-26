@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from robotframework_find_unused.commands.step.file_types import filter_robot_like_files
 from robotframework_find_unused.common.const import VariableData
 from robotframework_find_unused.reporter.base.variable_reporter import VariableReporter
 from robotframework_find_unused.visitors.robot import visit_robot_files
@@ -17,8 +18,10 @@ def step_count_variable_uses(
     """
     reporter.on_count_variable_uses_start(file_paths, variable_defs)
 
+    robot_like_file_paths = filter_robot_like_files(file_paths)
+
     visitor = RobotVisitorVariableUses(variable_defs)
-    visit_robot_files(file_paths, visitor)
+    visit_robot_files(robot_like_file_paths, visitor)
 
     variables = list(visitor.variables.values())
 

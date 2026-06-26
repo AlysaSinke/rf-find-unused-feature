@@ -25,7 +25,9 @@ if TYPE_CHECKING:
         If,
         KeywordCall,
         TemplateArguments,
+        Var,
         VariableSection,
+        While,
     )
 
 
@@ -40,6 +42,11 @@ class RobotVisitorVariableUses(ModelVisitor):
     _pattern_eval_variable = re.compile(r"\$(\w+)")
     # Details: https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#inline-python-evaluation
     _pattern_inline_eval = re.compile(r"\${{(.+?)}}")
+    _pattern_feature_outline_arg = re.compile(r"<([^<>]+)>")
+    _pattern_dynamic_name_template = re.compile(r"^(.*)\$\{([a-z0-9]+)\}(.*)$")
+    _pattern_dynamic_name_template_raw = re.compile(
+        r"^\$\{(.*)\$\{([A-Za-z0-9_]+)\}(.*)\}$",
+    )
 
     def __init__(self, variable_defs: dict[str, VariableData]) -> None:
         self.variables = variable_defs
@@ -78,6 +85,10 @@ class RobotVisitorVariableUses(ModelVisitor):
         """
         keyword_name_normalized = normalize_keyword_name(node.keyword)
 
+        # Feature steps are parsed as keyword calls where placeholders are often in the keyword
+        # name itself instead of argument columns.
+        self._count_used_vars_in_args([node.keyword])
+
         if keyword_name_normalized == "evaluate":
             self._count_used_vars_in_eval(node.args[0])
         elif keyword_name_normalized in (
@@ -113,6 +124,23 @@ class RobotVisitorVariableUses(ModelVisitor):
         """
         if node.condition:
             self._count_used_vars_in_eval(node.condition)
+
+        return self.generic_visit(node)
+
+    def visit_While(self, node: "While"):  # pyright: ignore[reportIncompatibleMethodOverride] # noqa: N802
+        """
+        Look for used variables in while loop conditions.
+        """
+        if node.condition:
+            self._count_used_vars_in_eval(node.condition)
+
+        return self.generic_visit(node)
+
+    def visit_Var(self, node: "Var"):  # noqa: N802
+        """
+        Look for used variables in values assigned with VAR syntax.
+        """
+        self._count_used_vars_in_args(node.value)
 
         return self.generic_visit(node)
 
@@ -156,6 +184,12 @@ class RobotVisitorVariableUses(ModelVisitor):
             var_match = get_variables_in_string(arg)
             used_vars += var_match
 
+            for outline_arg in self._pattern_feature_outline_arg.findall(arg):
+                outline_arg = outline_arg.strip()
+                if outline_arg == "":
+                    continue
+                used_vars.append("${" + outline_arg + "}")
+
             eval_match = self._pattern_inline_eval.findall(arg)
             for inline_eval in eval_match:
                 used_vars += self._get_used_vars_in_eval(inline_eval)
@@ -169,6 +203,7 @@ class RobotVisitorVariableUses(ModelVisitor):
         filtered = []
         for formatted_var in variables:
             var = normalize_variable_name(formatted_var)
+            unresolved_template_var = var
 
             try:
                 float(var)
@@ -185,6 +220,15 @@ class RobotVisitorVariableUses(ModelVisitor):
             for v in used_vars:
                 self._count_variable_use(v)
 
+            dynamic_candidates = self._expand_dynamic_name_candidates(
+                formatted_var,
+                unresolved_template_var,
+                var,
+            )
+            if len(dynamic_candidates) > 0:
+                filtered.extend(dynamic_candidates)
+                continue
+
             if not var.isalnum():
                 # Potential extended variable syntax
                 var = self._normalize_extended_variable_syntax(var)
@@ -192,6 +236,64 @@ class RobotVisitorVariableUses(ModelVisitor):
             filtered.append(var)
 
         return filtered
+
+    def _expand_dynamic_name_candidates(
+        self,
+        formatted_var: str,
+        unresolved_template_var: str,
+        resolved_var: str,
+    ) -> list[str]:
+        """
+        Expand dynamic variable-name patterns to all matching concrete variable names.
+
+        Example:
+            unresolved_template_var="originalmifirreportfile${entity}"
+            matches candidates like "originalmifirreportfilenl" and
+            "originalmifirreportfilebe".
+        """
+        if "${" not in unresolved_template_var:
+            return []
+
+        raw_match = self._pattern_dynamic_name_template_raw.match(formatted_var)
+        if not raw_match:
+            return []
+
+        (raw_prefix, _raw_template_var_name, raw_suffix) = raw_match.groups()
+        has_separator_boundary = (
+            raw_prefix.endswith(("_", ".", "-"))
+            or raw_suffix.startswith(("_", ".", "-"))
+        )
+        if not has_separator_boundary:
+            return []
+
+        match = self._pattern_dynamic_name_template.match(unresolved_template_var)
+        if not match:
+            return []
+
+        (prefix, template_var_name, suffix) = match.groups()
+        # Guard against fully dynamic names like `${${field_name}}` which would
+        # otherwise match every variable.
+        if prefix == "" and suffix == "":
+            return []
+
+        # Guard against obvious non-variable selectors like `${HELLO_${1}}`
+        # and `${HELLO_${True}}`.
+        if template_var_name.isdigit():
+            return []
+
+        if template_var_name in SUPPORTED_BUILTIN_VARS:
+            return []
+
+        candidates = [
+            var_name
+            for var_name in self.variables
+            if var_name.startswith(prefix) and var_name.endswith(suffix)
+        ]
+
+        if len(candidates) <= 1:
+            return []
+
+        return candidates
 
     def _normalize_extended_variable_syntax(self, var: str) -> str:
         if var in self.variables:

@@ -114,7 +114,8 @@ def keywords(  # noqa: PLR0913
     Find unused keywords
 
     Traverse files in the given file path. In those files, count how often each keyword is used.
-    Keywords with 0 uses are logged.
+    Supports keyword uses in `.robot`, `.resource`, and `.feature` files. Keywords with 0 uses are
+    logged.
 
     ----------
 
@@ -209,6 +210,25 @@ def keywords(  # noqa: PLR0913
     """,
 )
 @click.option(
+    "--yaml-variable-files",
+    type=click.Choice(["include", "exclude"], case_sensitive=False),
+    default="exclude",
+    show_default=True,
+    help="How to output .yaml/.yml variable file imports",
+)
+@click.option(
+    "--ignore-variable",
+    "ignored_variables",
+    default=[],
+    multiple=True,
+    metavar="<GLOB>",
+    type=click.UNPROCESSED,
+    help=(
+        "Ignore variables who's name match the glob pattern. "
+        "Matching without {brackets} and $@&% prefixes"
+    ),
+)
+@click.option(
     "-v",
     "--verbose",
     default=False,
@@ -219,15 +239,18 @@ def keywords(  # noqa: PLR0913
 def variables(
     show_count: bool,
     filter: str | None,  # noqa: A002
+    ignored_variables: tuple[str, ...],
     verbose: int,
     pythonpath: list[str],
+    yaml_variable_files: str,
     file_path: str,
 ):
     """
     Find unused global variables
 
     Traverse files in the given file path. In those files, count how often each global variable is
-    used. Variables defined in a variables section or variable file with 0 uses are logged.
+    used. Variable uses in `.feature` files are counted. Variables defined in a variables section
+    or variable file with 0 uses are logged.
 
     ----------
 
@@ -276,10 +299,14 @@ def variables(
 
     ----------
 
-    Limitation 3: Only counts variable uses in `.robot` and `.resource` files.
+    Limitation 3: Variable definitions are only discovered in `.robot` and `.resource` files.
 
     Using variables in Python files is never counted. This is true for both libraries and Python
     variable files.
+
+    By default, `.yaml` and `.yml` variable file imports are ignored in this
+    command. To include those files when gathering variable definitions, pass
+    `--yaml-variable-files include`.
 
     Example: The use of the variable `person` is not counted because it's used in a Python variable
     file.
@@ -299,7 +326,9 @@ def variables(
         source_path=file_path,
         show_all_count=show_count,
         filter_glob=filter,
+        ignored_variables=list(ignored_variables),
         pythonpath=pythonpath,
+        yaml_variable_files=yaml_variable_files,
         verbose=verbose,
     )
     reporter = VariableCliReporter(options)
@@ -376,7 +405,8 @@ def arguments(  # noqa: PLR0913
     Find unchanged default keyword arguments
 
     Traverse files in the given file path. In those files, count how often each argument is used
-    during a keyword call. Arguments with 0 uses are logged.
+    during a keyword call. Supports keyword calls in `.robot`, `.resource`, and `.feature` files.
+    Arguments with 0 uses are logged.
 
     ----------
 
@@ -498,7 +528,8 @@ def returns(  # noqa: PLR0913
     Find unused keyword return values
 
     Traverse files in the given file path. In those files, count how often each keyword return
-    value is used. Keywords whose return value is never used are logged.
+    value is used. Supports keyword calls in `.robot`, `.resource`, and `.feature` files.
+    Keywords whose return value is never used are logged.
 
     ----------
 

@@ -5,6 +5,7 @@ Implementation of the 'arguments' command
 from typing import TYPE_CHECKING
 
 from robotframework_find_unused.commands.step.discover_files import step_discover_file_paths
+from robotframework_find_unused.commands.step.file_types import filter_keyword_definition_files
 from robotframework_find_unused.commands.step.keyword_count_uses import step_count_keyword_uses
 from robotframework_find_unused.commands.step.keyword_definitions import (
     step_get_custom_keyword_definitions,
@@ -31,7 +32,23 @@ def command_arguments(options: "ArgumentsOptions", reporter: "ArgumentReporter")
     if file_paths is None:
         return
 
-    files = step_parse_files_with_libdoc(file_paths, reporter=reporter)
+    # Exclude Python files from the arguments linter.
+    file_paths = [
+        p
+        for p in file_paths
+        if p.suffix.lower() in (".robot", ".resource", ".feature")
+    ]
+    if len(file_paths) == 0:
+        return
+
+    definition_file_paths = filter_keyword_definition_files(file_paths)
+    definition_file_paths = [
+        p
+        for p in definition_file_paths
+        if p.suffix.lower() in (".robot", ".resource")
+    ]
+
+    files = step_parse_files_with_libdoc(definition_file_paths, reporter=reporter)
 
     keywords = step_get_custom_keyword_definitions(files, reporter=reporter)
     if len(keywords) == 0 and options.library_keywords == "exclude":

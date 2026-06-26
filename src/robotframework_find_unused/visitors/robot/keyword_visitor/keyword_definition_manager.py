@@ -13,6 +13,7 @@ class KeywordDefinitionManager:
     """
 
     keywords: dict[str, KeywordData]
+    keyword_candidates: dict[str, list[KeywordData]]
     keywords_with_embedded_args: list[KeywordData]
     lib_keywords: dict[str, KeywordData]
 
@@ -24,11 +25,22 @@ class KeywordDefinitionManager:
         downloaded_library_keywords: list[LibraryData],
     ) -> None:
         self.keywords = {}
-        self.keywords_with_embedded_args = []
+        self.keyword_candidates = {}
         for kw in custom_keywords:
             self.keywords[kw.normalized_name] = kw
-            if len(kw.name_parts) > 1 and kw.name_match_pattern is not None:
-                self.keywords_with_embedded_args.append(kw)
+            if kw.normalized_name in self.keyword_candidates:
+                self.keyword_candidates[kw.normalized_name].append(kw)
+            else:
+                self.keyword_candidates[kw.normalized_name] = [kw]
+
+        # Keep embedded-arg candidates aligned with canonical definitions.
+        # This prevents counting uses on stale duplicates that are not
+        # part of self.keywords.
+        self.keywords_with_embedded_args = [
+            kw
+            for kw in self.keywords.values()
+            if len(kw.name_parts) > 1 and kw.name_match_pattern is not None
+        ]
 
         self.lib_keywords = {}
         for lib in downloaded_library_keywords:
@@ -44,9 +56,12 @@ class KeywordDefinitionManager:
         Search keyword definition from keyword name or keyword call.
         """
         for normalized_name in self._keyword_name_match_options(keyword_name):
-            if normalized_name in self.keywords:
+            if normalized_name in self.keyword_candidates:
                 # Matched to a keyword (without embedded args)
-                return self.keywords[normalized_name]
+                return self._choose_keyword_candidate(
+                    normalized_name,
+                    keyword_name,
+                )
 
             if normalized_name in self.lib_keywords:
                 # Matched to a previously unused downloaded library keyword
@@ -58,6 +73,30 @@ class KeywordDefinitionManager:
                 return keyword
 
         return None
+
+    def _choose_keyword_candidate(self, normalized_name: str, keyword_name: str) -> KeywordData:
+        candidates = self.keyword_candidates[normalized_name]
+        if len(candidates) == 1:
+            return candidates[0]
+
+        called_library = self._get_keyword_call_library_prefix(keyword_name)
+        if called_library is not None:
+            library_matches = [kw for kw in candidates if kw.library == called_library]
+            if len(library_matches) == 1:
+                return library_matches[0]
+
+        # Prefer deterministic behavior: keep whichever definition was
+        # registered as canonical in `self.keywords`.
+        return self.keywords[normalized_name]
+
+    def _get_keyword_call_library_prefix(self, keyword_name: str) -> str | None:
+        normalized = normalize_keyword_name(keyword_name)
+        without_bdd = self._remove_bdd_prefix_from_name(normalized)
+
+        if "." not in without_bdd:
+            return None
+
+        return without_bdd.split(".", maxsplit=1)[0]
 
     def get_keyword_definition(self, keyword_name: str) -> KeywordData:
         """

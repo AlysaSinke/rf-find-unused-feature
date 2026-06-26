@@ -25,3 +25,18 @@ class TestCommandAcceptance(AcceptanceTest):
             __file__,
             expected_exit_code=9,
         )
+
+    def test_variables_command_with_ignored_variables(self):
+        self.run_test(
+            [
+                "variables",
+                "./robot",
+                "--ignore-variable",
+                "int_*",
+                "--ignore-variable",
+                "suite_scope_var_keyword_unused",
+            ],
+            "./expected_output_ignore.log",
+            __file__,
+            expected_exit_code=7,
+        )

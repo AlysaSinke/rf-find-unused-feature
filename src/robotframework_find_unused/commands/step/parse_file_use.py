@@ -25,15 +25,20 @@ def _count_file_uses(
     reporter: FileReporter,
 ) -> list[FileUseData]:
     """
-    Walk through all robot files to keep track of imports. Only returns user files.
+    Walk through robot/resource files to keep track of imports. Only returns user files.
     """
-    visitor = RobotVisitorFileImports(source_path, set(file_paths), reporter)
+    file_paths_without_feature = [p for p in file_paths if p.suffix.lower() != ".feature"]
+    suite_resource_file_paths = [
+        p for p in file_paths_without_feature if p.suffix.lower() in (".robot", ".resource")
+    ]
+
+    visitor = RobotVisitorFileImports(source_path, set(file_paths_without_feature), reporter)
     visit_robot_files(
-        file_paths,
+        suite_resource_file_paths,
         visitor,
         parse_sections=("settings", "keywords", "test cases", "tasks"),
     )
-    files_dict = _add_undiscovered_files(file_paths, visitor.files)
+    files_dict = _add_undiscovered_files(file_paths_without_feature, visitor.files)
 
     files_list = list(files_dict.values())
 
