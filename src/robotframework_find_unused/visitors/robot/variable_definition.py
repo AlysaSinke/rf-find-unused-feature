@@ -92,6 +92,11 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             msg = "Found variables file import outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
+        if not self.include_yaml_variable_files and node.name.lower().endswith((".yaml", ".yml")):
+            # YAML variable-file imports are explicitly excluded by option.
+            # Skip before resolving/importing to avoid noisy import errors.
+            return self.generic_visit(node)
+
         try:
             import_path = resolve_import_string(
                 node.name,
