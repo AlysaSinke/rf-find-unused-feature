@@ -47,7 +47,7 @@ def test_embedded_keyword_match_uses_canonical_definition_instance() -> None:
     keyword = manager.get_keyword_definition(
         (
             'Then a warning message with the text '
-            '"Niet alle transacties geboekt" should pop up'
+            '"Warning" should pop up'
         ),
     )
     keyword.use_count += 1
@@ -79,10 +79,10 @@ def _make_plain_keyword(name: str, library: str) -> KeywordData:
 
 
 def test_same_normalized_keyword_name_can_be_selected_by_library_prefix() -> None:
-    run_batch_definition = _make_plain_keyword("Run Batch Process", "run_batch")
+    run_batch_definition = _make_plain_keyword("Run Process", "run_process")
     imported_definition = _make_plain_keyword(
-        "Run Batch Process",
-        "run_journalising_batches",
+        "Run Process",
+        "run_batches",
     )
 
     manager = KeywordDefinitionManager(
@@ -90,16 +90,16 @@ def test_same_normalized_keyword_name_can_be_selected_by_library_prefix() -> Non
         [],
     )
 
-    keyword = manager.get_keyword_definition("run_batch.Run Batch Process")
+    keyword = manager.get_keyword_definition("run_process.Run Process")
 
     assert keyword is run_batch_definition
 
 
 def test_same_normalized_keyword_name_keeps_canonical_when_unqualified() -> None:
-    first_definition = _make_plain_keyword("Run Batch Process", "run_batch")
+    first_definition = _make_plain_keyword("Run Process", "run_batch")
     later_definition = _make_plain_keyword(
-        "Run Batch Process",
-        "run_journalising_batches",
+        "Run Process",
+        "run_batches",
     )
 
     manager = KeywordDefinitionManager(
@@ -107,6 +107,6 @@ def test_same_normalized_keyword_name_keeps_canonical_when_unqualified() -> None
         [],
     )
 
-    keyword = manager.get_keyword_definition("Run Batch Process")
+    keyword = manager.get_keyword_definition("Run Process")
 
     assert keyword is later_definition

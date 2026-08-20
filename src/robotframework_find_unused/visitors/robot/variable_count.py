@@ -45,7 +45,7 @@ class RobotVisitorVariableUses(ModelVisitor):
     _pattern_feature_outline_arg = re.compile(r"<([^<>]+)>")
     _pattern_dynamic_name_template = re.compile(r"^(.*)\$\{([a-z0-9]+)\}(.*)$")
     _pattern_dynamic_name_template_raw = re.compile(
-        r"^\$\{(.*)\$\{([A-Za-z0-9_]+)\}(.*)\}$",
+        r"^[\$@&%]\{(.*)\$\{([A-Za-z0-9_]+)\}(.*)\}$",
     )
 
     def __init__(self, variable_defs: dict[str, VariableData]) -> None:

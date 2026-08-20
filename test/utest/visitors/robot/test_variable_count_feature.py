@@ -68,7 +68,7 @@ def test_var_statement_value_counts_variable_use(tmp_path: Path):
         """
 *** Keywords ***
 My Keyword
-    VAR    &{payment} =    transaction_id=${INSTRUCTION_ID}
+    VAR    &{dictionary} =    used_var=${USED_VAR}
 """.lstrip(),
         encoding="utf8",
     )
@@ -76,15 +76,15 @@ My Keyword
     model = parse_robot_file(robot_file)
 
     variables = {
-        normalize_variable_name("${INSTRUCTION_ID}"): _make_variable(
-            "${INSTRUCTION_ID}",
+        normalize_variable_name("${USED_VAR}"): _make_variable(
+            "${USED_VAR}",
         ),
     }
 
     visitor = RobotVisitorVariableUses(variables)
     visitor.visit(model)
 
-    assert variables[normalize_variable_name("${INSTRUCTION_ID}")].use_count == 1
+    assert variables[normalize_variable_name("${USED_VAR}")].use_count == 1
 
 
 def test_while_condition_counts_variable_use(tmp_path: Path):
@@ -121,7 +121,7 @@ def test_dynamic_name_template_counts_all_matching_candidates(tmp_path: Path):
         """
 *** Keywords ***
 My Keyword
-    Log    ${ORIGINAL_MIFIR_REPORT_FILE_${ENTITY}}
+    Log    ${VARIABLE_NAME_${EXTRA_VARIABLE}}
 """.lstrip(),
         encoding="utf8",
     )
@@ -129,28 +129,28 @@ My Keyword
     model = parse_robot_file(robot_file)
 
     variables = {
-        normalize_variable_name("${ENTITY}"): _make_variable_with_value(
-            "${ENTITY}",
-            "NL",
+        normalize_variable_name("${EXTRA_VARIABLE}"): _make_variable_with_value(
+            "${EXTRA_VARIABLE}",
+            "A",
         ),
-        normalize_variable_name("${ORIGINAL_MIFIR_REPORT_FILE_NL}"): _make_variable(
-            "${ORIGINAL_MIFIR_REPORT_FILE_NL}",
+        normalize_variable_name("${VARIABLE_NAME_A}"): _make_variable(
+            "${VARIABLE_NAME_A}",
         ),
-        normalize_variable_name("${ORIGINAL_MIFIR_REPORT_FILE_BE}"): _make_variable(
-            "${ORIGINAL_MIFIR_REPORT_FILE_BE}",
+        normalize_variable_name("${VARIABLE_NAME_B}"): _make_variable(
+            "${VARIABLE_NAME_B}",
         ),
     }
 
     visitor = RobotVisitorVariableUses(variables)
     visitor.visit(model)
 
-    assert variables[normalize_variable_name("${ENTITY}")].use_count == 1
+    assert variables[normalize_variable_name("${EXTRA_VARIABLE}")].use_count == 1
     assert (
-        variables[normalize_variable_name("${ORIGINAL_MIFIR_REPORT_FILE_NL}")].use_count
+        variables[normalize_variable_name("${VARIABLE_NAME_A}")].use_count
         == 1
     )
     assert (
-        variables[normalize_variable_name("${ORIGINAL_MIFIR_REPORT_FILE_BE}")].use_count
+        variables[normalize_variable_name("${VARIABLE_NAME_B}")].use_count
         == 1
     )
 
@@ -191,7 +191,7 @@ def test_dynamic_template_with_argument_selector_counts_candidates(tmp_path: Pat
         """
 *** Keywords ***
 My Keyword
-    Should Be Equal As Strings    ${BID_QUOTE_VALUE}    ${${instrument}_PRICE}
+    Should Be Equal As Strings    ${USED_VAR}    ${${variable}_EXTRA}
 """.lstrip(),
         encoding="utf8",
     )
@@ -199,19 +199,19 @@ My Keyword
     model = parse_robot_file(robot_file)
 
     variables = {
-        normalize_variable_name("${instrument}"): _make_variable_with_value(
-            "${instrument}",
-            "${outline_instrument}",
+        normalize_variable_name("${variable}"): _make_variable_with_value(
+            "${variable}",
+            "${var_extra}",
         ),
-        normalize_variable_name("${BAM_PRICE}"): _make_variable("${BAM_PRICE}"),
-        normalize_variable_name("${ING_PRICE}"): _make_variable("${ING_PRICE}"),
+        normalize_variable_name("${A_EXTRA}"): _make_variable("${A_EXTRA}"),
+        normalize_variable_name("${B_EXTRA}"): _make_variable("${BAM_EXTRA}"),
     }
 
     visitor = RobotVisitorVariableUses(variables)
     visitor.visit(model)
 
-    assert variables[normalize_variable_name("${BAM_PRICE}")].use_count == 1
-    assert variables[normalize_variable_name("${ING_PRICE}")].use_count == 1
+    assert variables[normalize_variable_name("${A_EXTRA}")].use_count == 1
+    assert variables[normalize_variable_name("${B_EXTRA}")].use_count == 1
 
 
 def test_dynamic_template_with_conflicting_selector_still_counts_candidates(
@@ -222,7 +222,7 @@ def test_dynamic_template_with_conflicting_selector_still_counts_candidates(
         """
 *** Keywords ***
 My Keyword
-    I Log In With Client Account With ${${ENV}_USER} Username
+    I Log In With ${${ENV}_USER} Username
 """.lstrip(),
         encoding="utf8",
     )
@@ -232,15 +232,46 @@ My Keyword
     variables = {
         normalize_variable_name("${ENV}"): _make_variable_with_value(
             "${ENV}",
-            "TESTFE",
+            "ENV1",
         ),
-        normalize_variable_name("${ACC_USER}"): _make_variable("${ACC_USER}"),
-        normalize_variable_name("${TEST_USER}"): _make_variable("${TEST_USER}"),
+        normalize_variable_name("${ENV2_USER}"): _make_variable("${ENV2_USER}"),
+        normalize_variable_name("${ENV1_USER}"): _make_variable("${ENV1_USER}"),
     }
 
     visitor = RobotVisitorVariableUses(variables)
     visitor.visit(model)
 
     assert variables[normalize_variable_name("${ENV}")].use_count == 1
-    assert variables[normalize_variable_name("${ACC_USER}")].use_count == 1
-    assert variables[normalize_variable_name("${TEST_USER}")].use_count == 1
+    assert variables[normalize_variable_name("${ENV2_USER}")].use_count == 1
+    assert variables[normalize_variable_name("${ENV1_USER}")].use_count == 1
+
+
+def test_dynamic_list_template_counts_candidates_without_selector_definition(
+    tmp_path: Path,
+):
+    robot_file = tmp_path / "env_selector_list.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+My Keyword
+    Variable With List    ${USED_VAR}_A    @{${USED_VAR}_SERVERS}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("@{VAR_A_SERVERS}"): _make_variable(
+            "@{VAR_A_SERVERS}",
+        ),
+        normalize_variable_name("@{VAR_B_SERVERS}"): _make_variable(
+            "@{VAR_B_SERVERS}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("@{VAR_A_SERVERS}")].use_count == 1
+    assert variables[normalize_variable_name("@{VAR_B_SERVERS}")].use_count == 1
