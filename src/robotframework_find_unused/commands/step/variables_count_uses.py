@@ -20,10 +20,12 @@ def step_count_variable_uses(
     reporter.on_count_variable_uses_start(file_paths, variable_defs)
 
     robot_like_file_paths = filter_robot_like_files(file_paths)
+    feature_table_cells = _get_feature_table_cells(robot_like_file_paths)
 
     visitor = RobotVisitorVariableUses(variable_defs)
+    visitor.register_context_literals(feature_table_cells)
     visit_robot_files(robot_like_file_paths, visitor)
-    _count_feature_table_variable_uses(robot_like_file_paths, visitor)
+    _count_feature_table_variable_uses(feature_table_cells, visitor)
 
     variables = list(visitor.variables.values())
 
@@ -32,13 +34,19 @@ def step_count_variable_uses(
 
 
 def _count_feature_table_variable_uses(
-    file_paths: list[Path],
+    table_cells: list[str],
     visitor: RobotVisitorVariableUses,
 ) -> None:
-    feature_files = [p for p in file_paths if p.suffix.lower() == ".feature"]
-    for feature_file in feature_files:
-        table_cells = get_feature_table_cells(feature_file)
-        if len(table_cells) == 0:
-            continue
+    if len(table_cells) == 0:
+        return
 
-        visitor.count_used_vars_in_strings(table_cells)
+    visitor.count_used_vars_in_strings(table_cells)
+
+
+def _get_feature_table_cells(file_paths: list[Path]) -> list[str]:
+    feature_files = [p for p in file_paths if p.suffix.lower() == ".feature"]
+    table_cells: list[str] = []
+    for feature_file in feature_files:
+        table_cells.extend(get_feature_table_cells(feature_file))
+
+    return table_cells

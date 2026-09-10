@@ -275,3 +275,40 @@ My Keyword
 
     assert variables[normalize_variable_name("@{VAR_A_SERVERS}")].use_count == 1
     assert variables[normalize_variable_name("@{VAR_B_SERVERS}")].use_count == 1
+
+
+def test_dynamic_selector_uses_feature_context_literals(tmp_path: Path):
+    robot_file = tmp_path / "asset_selector.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Select Item Type
+    Click    ${item type ${item type id}}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${item type alpha}"): _make_variable(
+            "${item type alpha}",
+        ),
+        normalize_variable_name("${item type beta group}"): _make_variable(
+            "${item type beta group}",
+        ),
+        normalize_variable_name("${item type gamma}"): _make_variable(
+            "${item type gamma}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_context_literals(["alpha", "beta group"])
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${item type alpha}")].use_count == 1
+    assert (
+        variables[normalize_variable_name("${item type beta group}")].use_count
+        == 1
+    )
+    assert variables[normalize_variable_name("${item type gamma}")].use_count == 0
