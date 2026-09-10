@@ -654,3 +654,95 @@ Set Toggle State To ${toggle_state}
 
     assert variables[normalize_variable_name("${toggle yes radio button}")].use_count == 1
     assert variables[normalize_variable_name("${toggle no radio button}")].use_count == 1
+
+
+def test_fully_dynamic_template_uses_embedded_keyword_context_literal(
+    tmp_path: Path,
+):
+    robot_file = tmp_path / "embedded_fully_dynamic.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+I Check That ${existingElement} Is Visible Successfully
+    Log    ${${existingElement}}
+
+Run Check
+    I Check That Primary Save Control Is Visible Successfully
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${primary save control}"): _make_variable(
+            "${primary save control}",
+        ),
+        normalize_variable_name("${secondary cancel control}"): _make_variable(
+            "${secondary cancel control}",
+        ),
+    }
+
+    context_collector = RobotVisitorContextLiterals()
+    context_collector.visit(model)
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_context_literals(context_collector.get_context_literals())
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${primary save control}")].use_count == 1
+    assert (
+        variables[normalize_variable_name("${secondary cancel control}")].use_count
+        == 0
+    )
+
+
+def test_fully_dynamic_template_uses_feature_bdd_embedded_keyword_context(
+    tmp_path: Path,
+):
+    resource_file = tmp_path / "common.resource"
+    resource_file.write_text(
+        """
+*** Keywords ***
+I Check That ${existingElement} Is Visible Successfully
+    Log    ${${existingElement}}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    feature_file = tmp_path / "generic_page.feature"
+    feature_file.write_text(
+        """
+Feature: Generic page
+Scenario: Details page is viewed correctly
+And I check that primary save control is visible successfully
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    resource_model = parse_robot_file(resource_file)
+    feature_model = parse_robot_file(feature_file)
+
+    variables = {
+        normalize_variable_name("${primary save control}"): _make_variable(
+            "${primary save control}",
+        ),
+        normalize_variable_name("${secondary cancel control}"): _make_variable(
+            "${secondary cancel control}",
+        ),
+    }
+
+    context_collector = RobotVisitorContextLiterals()
+    context_collector.visit(resource_model)
+    context_collector.visit(feature_model)
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_context_literals(context_collector.get_context_literals())
+    visitor.visit(resource_model)
+    visitor.visit(feature_model)
+
+    assert variables[normalize_variable_name("${primary save control}")].use_count == 1
+    assert (
+        variables[normalize_variable_name("${secondary cancel control}")].use_count
+        == 0
+    )

@@ -318,7 +318,9 @@ class RobotVisitorVariableUses(ModelVisitor):
             or raw_suffix.startswith(("_", ".", "-"))
             or raw_suffix.startswith(" ")
         )
-        if not has_separator_boundary:
+        if not has_separator_boundary and not (
+            raw_prefix == "" and raw_suffix == ""
+        ):
             return []
 
         match = self._pattern_dynamic_name_template.match(unresolved_template_var)
@@ -326,10 +328,7 @@ class RobotVisitorVariableUses(ModelVisitor):
             return []
 
         (prefix, template_var_name, suffix) = match.groups()
-        # Guard against fully dynamic names like `${${field_name}}` which would
-        # otherwise match every variable.
-        if prefix == "" and suffix == "":
-            return []
+        is_fully_dynamic = prefix == "" and suffix == ""
 
         # Guard against obvious non-variable selectors like `${HELLO_${1}}`
         # and `${HELLO_${True}}`.
@@ -354,6 +353,15 @@ class RobotVisitorVariableUses(ModelVisitor):
         )
         if len(context_filtered_candidates) > 0:
             return context_filtered_candidates
+
+        # Guard against fully dynamic names like `${${field_name}}` when no
+        # reliable context narrowed the candidate set.
+        if is_fully_dynamic:
+            if resolved_var != unresolved_template_var and resolved_var in self.variables:
+                return [resolved_var]
+            if len(candidates) == 1:
+                return candidates
+            return []
 
         # Runtime selector templates are commonly configured per profile/run.
         # For prefixed branch names (e.g. REPORT_PATH_${ENTITY}), count all
@@ -637,6 +645,7 @@ class RobotVisitorContextLiterals(ModelVisitor):
 
     _embedded_patterns: list[re.Pattern]
     _normalized_calls: list[str]
+    _pattern_bdd_prefix = re.compile(r"^(given|when|then|and|but)\s+", re.IGNORECASE)
 
     def __init__(self) -> None:
         self._embedded_patterns = []
@@ -652,6 +661,10 @@ class RobotVisitorContextLiterals(ModelVisitor):
 
     def visit_KeywordCall(self, node: "KeywordCall"):  # noqa: N802
         self._normalized_calls.append(normalize_keyword_name(node.keyword))
+
+        stripped_keyword = self._pattern_bdd_prefix.sub("", node.keyword, count=1)
+        if stripped_keyword != node.keyword:
+            self._normalized_calls.append(normalize_keyword_name(stripped_keyword))
 
         return self.generic_visit(node)
 
