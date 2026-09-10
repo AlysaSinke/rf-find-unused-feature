@@ -53,6 +53,7 @@ class RobotVisitorVariableUses(ModelVisitor):
         self.variables = variable_defs
         self.context_literals_normalized: set[str] = set()
         self.selector_context_literals_normalized: dict[str, set[str]] = {}
+        self.selector_context_literals_all_normalized: set[str] = set()
         super().__init__()
 
     def register_context_literals(self, values: Iterable[str]) -> None:
@@ -91,9 +92,12 @@ class RobotVisitorVariableUses(ModelVisitor):
             value = value.strip()
             if value == "":
                 continue
-            selector_values.add(
-                normalize_variable_name(value, strip_decoration=False),
+            normalized_value = normalize_variable_name(
+                value,
+                strip_decoration=False,
             )
+            selector_values.add(normalized_value)
+            self.selector_context_literals_all_normalized.add(normalized_value)
 
     def visit_VariableSection(self, node: "VariableSection"):  # noqa: N802
         """
@@ -351,6 +355,19 @@ class RobotVisitorVariableUses(ModelVisitor):
         if len(context_filtered_candidates) > 0:
             return context_filtered_candidates
 
+        # Runtime selector templates are commonly configured per profile/run.
+        # For prefixed branch names (e.g. REPORT_PATH_${ENTITY}), count all
+        # matching branches instead of only the currently resolved default.
+        if (
+            len(candidates) > 1
+            and self._is_runtime_selector_template(template_var_name)
+            and (
+                prefix != ""
+                or formatted_var.startswith(("@{", "&{"))
+            )
+        ):
+            return candidates
+
         if resolved_var != unresolved_template_var and resolved_var in self.variables:
             return [resolved_var]
 
@@ -360,10 +377,12 @@ class RobotVisitorVariableUses(ModelVisitor):
         if len(candidates) == 0:
             return []
 
-        # If runtime selector is unresolved (e.g. ENV/ENTITY), treat matching
-        # candidates as used to avoid false positives for runtime-selected
-        # variable branches.
-        if self._is_runtime_selector_template(template_var_name):
+        # Keep unresolved runtime selectors safe for patterns like
+        # `@{${ENV}_GROUP_IDS}` where no selector value is defined.
+        if (
+            resolved_var == unresolved_template_var
+            and self._is_runtime_selector_template(template_var_name)
+        ):
             return candidates
 
         # Ambiguous dynamic template with multiple possible matches and no
@@ -432,6 +451,14 @@ class RobotVisitorVariableUses(ModelVisitor):
             if len(alias_filtered) > 0:
                 return alias_filtered
 
+        boolean_filtered = self._filter_boolean_candidates_with_selector_literals(
+            candidates,
+            prefix,
+            suffix,
+        )
+        if len(boolean_filtered) > 0:
+            return boolean_filtered
+
         # Generic literals (embedded keyword call captures) are fallback.
         return self._filter_candidates_against_literals(
             candidates,
@@ -462,6 +489,38 @@ class RobotVisitorVariableUses(ModelVisitor):
 
             if middle in literals:
                 filtered.append(candidate)
+
+        return filtered
+
+    def _filter_boolean_candidates_with_selector_literals(
+        self,
+        candidates: list[str],
+        prefix: str,
+        suffix: str,
+    ) -> list[str]:
+        if len(candidates) == 0:
+            return []
+
+        boolean_literals = {"yes", "no"}
+        if len(self.selector_context_literals_all_normalized & boolean_literals) == 0:
+            return []
+
+        filtered = []
+        prefix_len = len(prefix)
+        suffix_len = len(suffix)
+
+        for candidate in candidates:
+            if suffix_len > 0:
+                middle = candidate[prefix_len:-suffix_len]
+            else:
+                middle = candidate[prefix_len:]
+
+            if middle in boolean_literals:
+                if middle in self.selector_context_literals_all_normalized:
+                    filtered.append(candidate)
+                continue
+
+            return []
 
         return filtered
 

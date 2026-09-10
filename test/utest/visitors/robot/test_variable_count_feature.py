@@ -551,3 +551,106 @@ Copy Expected File
 
     assert variables[normalize_variable_name("${REPORT_PATH_ALPHA}")].use_count == 1
     assert variables[normalize_variable_name("${REPORT_PATH_BETA}")].use_count == 1
+
+
+def test_dynamic_scalar_template_with_resolved_runtime_selector_counts_candidates(
+    tmp_path: Path,
+):
+    robot_file = tmp_path / "runtime_branch_path_resolved.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Copy Expected File
+    Copy File    ${REPORT_PATH_${ENTITY}}    ${target}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${ENTITY}"): _make_variable_with_value(
+            "${ENTITY}",
+            "ALPHA",
+        ),
+        normalize_variable_name("${REPORT_PATH_ALPHA}"): _make_variable(
+            "${REPORT_PATH_ALPHA}",
+        ),
+        normalize_variable_name("${REPORT_PATH_BETA}"): _make_variable(
+            "${REPORT_PATH_BETA}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${ENTITY}")].use_count == 1
+    assert variables[normalize_variable_name("${REPORT_PATH_ALPHA}")].use_count == 1
+    assert variables[normalize_variable_name("${REPORT_PATH_BETA}")].use_count == 1
+
+
+def test_dynamic_list_template_with_resolved_runtime_selector_counts_candidates(
+    tmp_path: Path,
+):
+    robot_file = tmp_path / "resolved_env_group_ids.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Resolve Group Targets
+    Consume Group Ids    @{${ENV}_GROUP_IDS}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${ENV}"): _make_variable_with_value(
+            "${ENV}",
+            "DEV",
+        ),
+        normalize_variable_name("@{DEV_GROUP_IDS}"): _make_variable(
+            "@{DEV_GROUP_IDS}",
+        ),
+        normalize_variable_name("@{PROD_GROUP_IDS}"): _make_variable(
+            "@{PROD_GROUP_IDS}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${ENV}")].use_count == 1
+    assert variables[normalize_variable_name("@{DEV_GROUP_IDS}")].use_count == 1
+    assert variables[normalize_variable_name("@{PROD_GROUP_IDS}")].use_count == 1
+
+
+def test_dynamic_toggle_candidates_use_selector_boolean_literals(tmp_path: Path):
+    robot_file = tmp_path / "toggle_state.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Set Toggle State To ${toggle_state}
+    Click    ${toggle ${toggle_state} radio button}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${toggle yes radio button}"): _make_variable(
+            "${toggle yes radio button}",
+        ),
+        normalize_variable_name("${toggle no radio button}"): _make_variable(
+            "${toggle no radio button}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_selector_context_literals("yes_no", ["yes", "no"])
+    visitor.register_context_literals(["no"])
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${toggle yes radio button}")].use_count == 1
+    assert variables[normalize_variable_name("${toggle no radio button}")].use_count == 1
