@@ -353,6 +353,43 @@ Create Example Item
     assert variables[normalize_variable_name("${option beta group}")].use_count == 0
 
 
+def test_dynamic_selector_merges_selector_and_embedded_context_literals(
+    tmp_path: Path,
+):
+    robot_file = tmp_path / "merge_selector_context.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Select Option
+    Click    ${option ${selector}}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${option alpha}"): _make_variable(
+            "${option alpha}",
+        ),
+        normalize_variable_name("${option beta}"): _make_variable(
+            "${option beta}",
+        ),
+        normalize_variable_name("${option gamma}"): _make_variable(
+            "${option gamma}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_selector_context_literals("selector", ["alpha", "beta"])
+    visitor.register_context_literals(["gamma"])
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${option alpha}")].use_count == 1
+    assert variables[normalize_variable_name("${option beta}")].use_count == 1
+    assert variables[normalize_variable_name("${option gamma}")].use_count == 1
+
+
 def test_dynamic_dotted_selector_counts_dictionary_root_with_prefixed_env(
     tmp_path: Path,
 ):
