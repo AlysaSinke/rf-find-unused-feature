@@ -4,6 +4,7 @@ from robotframework_find_unused.common.const import VariableData
 from robotframework_find_unused.common.normalize import normalize_variable_name
 from robotframework_find_unused.parse.parse_robot_file import parse_robot_file
 from robotframework_find_unused.visitors.robot.variable_count import (
+    RobotVisitorContextLiterals,
     RobotVisitorVariableUses,
 )
 
@@ -312,3 +313,39 @@ Select Item Type
         == 1
     )
     assert variables[normalize_variable_name("${item type gamma}")].use_count == 0
+
+
+def test_dynamic_selector_uses_embedded_keyword_call_literals(tmp_path: Path):
+    robot_file = tmp_path / "category_selector.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Set Category To ${category}
+    Click    ${option ${category}}
+
+Create Example Item
+    Set Category To Alpha Group
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${option alpha group}"): _make_variable(
+            "${option alpha group}",
+        ),
+        normalize_variable_name("${option beta group}"): _make_variable(
+            "${option beta group}",
+        ),
+    }
+
+    context_collector = RobotVisitorContextLiterals()
+    context_collector.visit(model)
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_context_literals(context_collector.get_context_literals())
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${option alpha group}")].use_count == 1
+    assert variables[normalize_variable_name("${option beta group}")].use_count == 0

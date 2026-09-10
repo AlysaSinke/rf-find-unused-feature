@@ -20,6 +20,7 @@ from robotframework_find_unused.resolve.resolve_variables import (
 
 if TYPE_CHECKING:
     from robot.api.parsing import (
+        Keyword,
         Arguments,
         For,
         If,
@@ -387,3 +388,64 @@ class RobotVisitorVariableUses(ModelVisitor):
             # Unknown variable definition. Ignore
             return
         self.variables[normalized_name].use_count += 1
+
+
+class RobotVisitorContextLiterals(ModelVisitor):
+    """
+    Collect plain-text context literals from embedded-argument keyword calls.
+    """
+
+    _embedded_patterns: list[re.Pattern]
+    _normalized_calls: list[str]
+
+    def __init__(self) -> None:
+        self._embedded_patterns = []
+        self._normalized_calls = []
+        super().__init__()
+
+    def visit_Keyword(self, node: "Keyword"):  # noqa: N802
+        pattern = self._build_embedded_capture_pattern(node.name)
+        if pattern is not None:
+            self._embedded_patterns.append(pattern)
+
+        return self.generic_visit(node)
+
+    def visit_KeywordCall(self, node: "KeywordCall"):  # noqa: N802
+        self._normalized_calls.append(normalize_keyword_name(node.keyword))
+
+        return self.generic_visit(node)
+
+    def get_context_literals(self) -> list[str]:
+        if len(self._embedded_patterns) == 0 or len(self._normalized_calls) == 0:
+            return []
+
+        values: set[str] = set()
+        for call in self._normalized_calls:
+            for pattern in self._embedded_patterns:
+                match = pattern.fullmatch(call)
+                if not match:
+                    continue
+
+                for value in match.groups():
+                    if value == "":
+                        continue
+                    values.add(value)
+
+        return list(values)
+
+    def _build_embedded_capture_pattern(self, keyword_name: str) -> re.Pattern | None:
+        normalized = normalize_keyword_name(keyword_name)
+        embedded_vars = get_variables_in_string(normalized)
+        if len(embedded_vars) == 0:
+            return None
+
+        pattern = "^"
+        remaining = normalized
+        for embedded_var in embedded_vars:
+            (prefix, remaining) = remaining.split(embedded_var, maxsplit=1)
+            pattern += re.escape(prefix)
+            pattern += "(.+?)"
+        pattern += re.escape(remaining)
+        pattern += "$"
+        return re.compile(pattern)
+
