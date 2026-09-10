@@ -230,13 +230,6 @@ def keywords(  # noqa: PLR0913
     """,
 )
 @click.option(
-    "--yaml-variable-files",
-    type=click.Choice(["include", "exclude"], case_sensitive=False),
-    default="exclude",
-    show_default=True,
-    help="How to output .yaml/.yml variable file imports",
-)
-@click.option(
     "--ignore-variable",
     "ignored_variables",
     default=[],
@@ -262,7 +255,6 @@ def variables(
     ignored_variables: tuple[str, ...],
     verbose: int,
     pythonpath: list[str],
-    yaml_variable_files: str,
     file_path: str,
 ):
     """
@@ -325,9 +317,8 @@ def variables(
     Using variables in Python files is never counted. This is true for both libraries and Python
     variable files.
 
-    By default, `.yaml` and `.yml` variable file imports are ignored in this
-    command. To include those files when gathering variable definitions, pass
-    `--yaml-variable-files include`.
+    `.yaml` and `.yml` variable file imports are included when gathering
+    variable definitions.
 
     Example: The use of the variable `person` is not counted because it's used in a Python variable
     file.
@@ -349,7 +340,6 @@ def variables(
         filter_glob=filter,
         ignored_variables=list(ignored_variables),
         pythonpath=pythonpath,
-        yaml_variable_files=yaml_variable_files,
         verbose=verbose,
     )
     reporter = VariableCliReporter(options)

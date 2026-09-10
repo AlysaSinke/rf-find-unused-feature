@@ -36,7 +36,6 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
     root_directory: Path
     discovered_files: set[Path]
     variables: dict[str, VariableData]
-    include_yaml_variable_files: bool
     current_working_file: Path | None = None
     current_working_directory: Path | None = None
 
@@ -45,14 +44,11 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
         root_directory: Path,
         discovered_files: set[Path] | None,
         reporter: "VariableReporter",
-        *,
-        include_yaml_variable_files: bool,
     ) -> None:
         self.root_directory = root_directory.absolute()
         self.discovered_files = discovered_files or set()
         self.reporter = reporter
         self.variables = {}
-        self.include_yaml_variable_files = include_yaml_variable_files
         super().__init__()
 
     def visit_File(self, node: "File"):  # noqa: N802
@@ -92,11 +88,6 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             msg = "Found variables file import outside a supported suite/resource file"
             raise ImpossibleStateError(msg)
 
-        if not self.include_yaml_variable_files and node.name.lower().endswith((".yaml", ".yml")):
-            # YAML variable-file imports are explicitly excluded by option.
-            # Skip before resolving/importing to avoid noisy import errors.
-            return self.generic_visit(node)
-
         try:
             import_path = resolve_import_string(
                 node.name,
@@ -106,12 +97,6 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             )
             if import_path:
                 variable_file_path = Path(import_path.path)
-                if (
-                    not self.include_yaml_variable_files
-                    and variable_file_path.suffix.lower() in (".yaml", ".yml")
-                ):
-                    return self.generic_visit(node)
-
                 self._import_variable_file(variable_file_path, node.args)
         except Exception as e:  # noqa: BLE001
             from_path = to_relative_path(self.root_directory, self.current_working_file)

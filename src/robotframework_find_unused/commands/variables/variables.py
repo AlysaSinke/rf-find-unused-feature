@@ -36,7 +36,6 @@ def command_variables(options: "VariableOptions", reporter: "VariableReporter") 
     variables = step_get_variable_definitions(
         file_paths,
         Path(options.source_path),
-        include_yaml_variable_files=options.yaml_variable_files == "include",
         reporter=reporter,
     )
     if len(variables) == 0:

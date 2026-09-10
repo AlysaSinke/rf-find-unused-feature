@@ -1,8 +1,9 @@
 Discovering files in `./robot` using Robocop config...
 Gathering variables definitions...
-[ DONE ] Found 2 unique non-local variables definitions
+[ DONE ] Found 5 unique non-local variables definitions
 Counting variable usage...
-[ DONE ] Found 1 variable uses of gathered variables
+[ DONE ] Found 3 variable uses of gathered variables
 
-Found 1 unused variables:
+Found 2 unused variables:
     ${resource_unused}
+    ${yaml_unused}
