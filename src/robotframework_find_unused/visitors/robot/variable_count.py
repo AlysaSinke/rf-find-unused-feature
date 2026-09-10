@@ -360,9 +360,26 @@ class RobotVisitorVariableUses(ModelVisitor):
         if len(candidates) == 0:
             return []
 
+        # If runtime selector is unresolved (e.g. ENV/ENTITY), treat matching
+        # candidates as used to avoid false positives for runtime-selected
+        # variable branches.
+        if self._is_runtime_selector_template(template_var_name):
+            return candidates
+
         # Ambiguous dynamic template with multiple possible matches and no
         # reliable selector context; avoid marking all candidates as used.
         return []
+
+    def _is_runtime_selector_template(self, template_var_name: str) -> bool:
+        template_var_name_normalized = normalize_variable_name(
+            template_var_name,
+            strip_decoration=False,
+        )
+        return template_var_name_normalized in {
+            "env",
+            "environment",
+            "entity",
+        }
 
     def _filter_candidates_with_context_literals(
         self,
@@ -399,8 +416,9 @@ class RobotVisitorVariableUses(ModelVisitor):
         if len(selector_filtered) > 0:
             return selector_filtered
 
-        alias_selector_name = self._get_selector_alias_name(raw_template_var_name)
-        if alias_selector_name is not None:
+        for alias_selector_name in self._get_selector_alias_names(
+            raw_template_var_name,
+        ):
             alias_literals = self.selector_context_literals_normalized.get(
                 alias_selector_name,
                 set(),
@@ -447,26 +465,38 @@ class RobotVisitorVariableUses(ModelVisitor):
 
         return filtered
 
-    def _get_selector_alias_name(self, raw_template_var_name: str) -> str | None:
+    def _get_selector_alias_names(self, raw_template_var_name: str) -> list[str]:
         """
-        Return fallback selector alias based on the last token of a selector variable.
+        Return ordered fallback selector aliases for selector-scoped feature columns.
 
-        Example: for `${classification id ${classification id}}`, feature tables often
-        use `id` as the column name. In that case, `classification id` can alias to `id`.
+        Examples:
+        - `${classification id ${classification id}}` -> `id`
+        - `${region of activity ${region of activity}}` -> `region`
         """
+        aliases: list[str] = []
+
+        # Pattern: "<noun> of ..." often maps to feature columns like "<noun>".
+        of_match = re.match(r"^\s*([a-z0-9]+)\s+of\b", raw_template_var_name.casefold())
+        if of_match is not None:
+            alias = normalize_variable_name(
+                of_match.group(1),
+                strip_decoration=False,
+            )
+            if alias != "":
+                aliases.append(alias)
+
+        # Last-token fallback supports patterns like "classification id" -> "id".
         tokens = [
             token
             for token in re.split(r"[^a-z0-9]+", raw_template_var_name.casefold())
             if token != ""
         ]
-        if len(tokens) <= 1:
-            return None
+        if len(tokens) > 1:
+            alias = normalize_variable_name(tokens[-1], strip_decoration=False)
+            if alias != "" and alias not in aliases:
+                aliases.append(alias)
 
-        alias = normalize_variable_name(tokens[-1], strip_decoration=False)
-        if alias == "":
-            return None
-
-        return alias
+        return aliases
 
     def _normalize_extended_variable_syntax(self, var: str) -> str:
         if var in self.variables:
