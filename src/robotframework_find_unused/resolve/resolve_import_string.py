@@ -86,13 +86,31 @@ class _FilePathResolver(_AbstractImportStringResolver):
         in_scope_directory: Path,
     ) -> ResolvedFileImport | Literal[False] | None:
         pythonpath_paths_in_scope = self._get_pythonpath_paths_in_scope(in_scope_directory)
-        relative_to_paths = [relative_to, *pythonpath_paths_in_scope]
+        relative_to_paths = [
+            relative_to,
+            *pythonpath_paths_in_scope,
+            in_scope_directory,
+            in_scope_directory.joinpath("Resources"),
+        ]
 
-        for relative_to_path in relative_to_paths:
+        # Keep order while removing duplicates.
+        seen_paths: set[Path] = set()
+        unique_relative_to_paths: list[Path] = []
+        for rel_path in relative_to_paths:
+            path = rel_path.resolve()
+            if path in seen_paths:
+                continue
+            seen_paths.add(path)
+            unique_relative_to_paths.append(path)
+
+        found_out_of_scope = False
+
+        for relative_to_path in unique_relative_to_paths:
             abs_path = relative_to_path.joinpath(import_str).resolve()
 
             if not path_in_scope(abs_path, in_scope_directory):
-                return False
+                found_out_of_scope = True
+                continue
 
             resolved = ResolvedFileImport(
                 type="FILE_PATH",
@@ -105,6 +123,9 @@ class _FilePathResolver(_AbstractImportStringResolver):
 
             if path_exists(resolved.path):
                 return resolved
+
+        if found_out_of_scope:
+            return False
 
         return None
 
