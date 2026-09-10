@@ -307,7 +307,7 @@ class RobotVisitorVariableUses(ModelVisitor):
         if not raw_match:
             return []
 
-        (raw_prefix, _raw_template_var_name, raw_suffix) = raw_match.groups()
+        (raw_prefix, raw_template_var_name, raw_suffix) = raw_match.groups()
         has_separator_boundary = (
             raw_prefix.endswith(("_", ".", "-"))
             or raw_prefix.endswith(" ")
@@ -346,6 +346,7 @@ class RobotVisitorVariableUses(ModelVisitor):
             prefix,
             suffix,
             template_var_name,
+            raw_template_var_name,
         )
         if len(context_filtered_candidates) > 0:
             return context_filtered_candidates
@@ -369,6 +370,7 @@ class RobotVisitorVariableUses(ModelVisitor):
         prefix: str,
         suffix: str,
         template_var_name: str,
+        raw_template_var_name: str,
     ) -> list[str]:
         """
         Keep dynamic-name candidates whose variable-specific segment appears in context literals.
@@ -396,6 +398,21 @@ class RobotVisitorVariableUses(ModelVisitor):
         )
         if len(selector_filtered) > 0:
             return selector_filtered
+
+        alias_selector_name = self._get_selector_alias_name(raw_template_var_name)
+        if alias_selector_name is not None:
+            alias_literals = self.selector_context_literals_normalized.get(
+                alias_selector_name,
+                set(),
+            )
+            alias_filtered = self._filter_candidates_against_literals(
+                candidates,
+                prefix,
+                suffix,
+                alias_literals,
+            )
+            if len(alias_filtered) > 0:
+                return alias_filtered
 
         # Generic literals (embedded keyword call captures) are fallback.
         return self._filter_candidates_against_literals(
@@ -429,6 +446,27 @@ class RobotVisitorVariableUses(ModelVisitor):
                 filtered.append(candidate)
 
         return filtered
+
+    def _get_selector_alias_name(self, raw_template_var_name: str) -> str | None:
+        """
+        Return fallback selector alias based on the last token of a selector variable.
+
+        Example: for `${classification id ${classification id}}`, feature tables often
+        use `id` as the column name. In that case, `classification id` can alias to `id`.
+        """
+        tokens = [
+            token
+            for token in re.split(r"[^a-z0-9]+", raw_template_var_name.casefold())
+            if token != ""
+        ]
+        if len(tokens) <= 1:
+            return None
+
+        alias = normalize_variable_name(tokens[-1], strip_decoration=False)
+        if alias == "":
+            return None
+
+        return alias
 
     def _normalize_extended_variable_syntax(self, var: str) -> str:
         if var in self.variables:

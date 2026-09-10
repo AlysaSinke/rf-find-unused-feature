@@ -423,3 +423,33 @@ Pick Target Option
         == 0
     )
     assert variables[normalize_variable_name("${target option beta}")].use_count == 0
+
+
+def test_dynamic_selector_uses_id_column_alias_context(tmp_path: Path):
+    robot_file = tmp_path / "selector_id_alias.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Select By Identifier
+    Click    ${item id ${item id}}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${item id alpha-marker}"): _make_variable(
+            "${item id alpha-marker}",
+        ),
+        normalize_variable_name("${item id beta-marker}"): _make_variable(
+            "${item id beta-marker}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_selector_context_literals("id", ["alpha-marker"])
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${item id alpha-marker}")].use_count == 1
+    assert variables[normalize_variable_name("${item id beta-marker}")].use_count == 0
