@@ -45,26 +45,12 @@ class RobotVisitorVariableUses(ModelVisitor):
     _pattern_feature_outline_arg = re.compile(r"<([^<>]+)>")
     _pattern_dynamic_name_template = re.compile(r"^(.*)\$\{([a-z0-9]+)\}(.*)$")
     _pattern_dynamic_name_template_raw = re.compile(
-        r"^[\$@&%]\{(.*)\$\{([^{}]+)\}(.*)\}$",
+        r"^[\$@&%]\{(.*)\$\{([A-Za-z0-9_]+)\}(.*)\}$",
     )
 
     def __init__(self, variable_defs: dict[str, VariableData]) -> None:
         self.variables = variable_defs
-        self.context_literals_normalized: set[str] = set()
         super().__init__()
-
-    def register_context_literals(self, values: Iterable[str]) -> None:
-        """
-        Register plain-text values that can help resolve dynamic variable names.
-        """
-        for value in values:
-            value = value.strip()
-            if value == "":
-                continue
-
-            self.context_literals_normalized.add(
-                normalize_variable_name(value, strip_decoration=False),
-            )
 
     def visit_VariableSection(self, node: "VariableSection"):  # noqa: N802
         """
@@ -281,9 +267,7 @@ class RobotVisitorVariableUses(ModelVisitor):
         (raw_prefix, _raw_template_var_name, raw_suffix) = raw_match.groups()
         has_separator_boundary = (
             raw_prefix.endswith(("_", ".", "-"))
-            or raw_prefix.endswith(" ")
             or raw_suffix.startswith(("_", ".", "-"))
-            or raw_suffix.startswith(" ")
         )
         if not has_separator_boundary:
             return []
@@ -312,49 +296,10 @@ class RobotVisitorVariableUses(ModelVisitor):
             if var_name.startswith(prefix) and var_name.endswith(suffix)
         ]
 
-        context_filtered_candidates = self._filter_candidates_with_context_literals(
-            candidates,
-            prefix,
-            suffix,
-        )
-        if len(context_filtered_candidates) > 0:
-            return context_filtered_candidates
-
         if len(candidates) <= 1:
             return []
 
         return candidates
-
-    def _filter_candidates_with_context_literals(
-        self,
-        candidates: list[str],
-        prefix: str,
-        suffix: str,
-    ) -> list[str]:
-        """
-        Keep dynamic-name candidates whose variable-specific segment appears in context literals.
-
-        Context literals are loaded from feature table values and help map selectors such as
-        `${asset class ${asset class id}}` to concrete variables like
-        `${asset class business values}`.
-        """
-        if len(self.context_literals_normalized) == 0:
-            return []
-
-        filtered = []
-        prefix_len = len(prefix)
-        suffix_len = len(suffix)
-
-        for candidate in candidates:
-            if suffix_len > 0:
-                middle = candidate[prefix_len:-suffix_len]
-            else:
-                middle = candidate[prefix_len:]
-
-            if middle in self.context_literals_normalized:
-                filtered.append(candidate)
-
-        return filtered
 
     def _normalize_extended_variable_syntax(self, var: str) -> str:
         if var in self.variables:
