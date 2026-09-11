@@ -116,7 +116,7 @@ My Keyword
     assert variables[normalize_variable_name("${MAX_RETRIES}")].use_count == 1
 
 
-def test_dynamic_name_template_counts_resolved_candidate(tmp_path: Path):
+def test_dynamic_name_template_counts_all_matching_candidates(tmp_path: Path):
     robot_file = tmp_path / "dynamic_template.resource"
     robot_file.write_text(
         """
@@ -152,7 +152,7 @@ My Keyword
     )
     assert (
         variables[normalize_variable_name("${VARIABLE_NAME_B}")].use_count
-        == 0
+        == 1
     )
 
 
@@ -186,9 +186,7 @@ My Keyword
     assert variables[normalize_variable_name("${field_b}")].use_count == 0
 
 
-def test_dynamic_template_with_argument_selector_without_match_counts_none(
-    tmp_path: Path,
-):
+def test_dynamic_template_with_argument_selector_counts_candidates(tmp_path: Path):
     robot_file = tmp_path / "arg_selector.resource"
     robot_file.write_text(
         """
@@ -213,11 +211,11 @@ My Keyword
     visitor = RobotVisitorVariableUses(variables)
     visitor.visit(model)
 
-    assert variables[normalize_variable_name("${A_EXTRA}")].use_count == 0
-    assert variables[normalize_variable_name("${B_EXTRA}")].use_count == 0
+    assert variables[normalize_variable_name("${A_EXTRA}")].use_count == 1
+    assert variables[normalize_variable_name("${B_EXTRA}")].use_count == 1
 
 
-def test_dynamic_template_with_conflicting_selector_counts_resolved_candidate(
+def test_dynamic_template_with_conflicting_selector_still_counts_candidates(
     tmp_path: Path,
 ):
     robot_file = tmp_path / "env_selector.resource"
@@ -245,11 +243,11 @@ My Keyword
     visitor.visit(model)
 
     assert variables[normalize_variable_name("${ENV}")].use_count == 1
-    assert variables[normalize_variable_name("${ENV2_USER}")].use_count == 0
+    assert variables[normalize_variable_name("${ENV2_USER}")].use_count == 1
     assert variables[normalize_variable_name("${ENV1_USER}")].use_count == 1
 
 
-def test_dynamic_list_template_without_selector_definition_counts_none(
+def test_dynamic_list_template_counts_candidates_without_selector_definition(
     tmp_path: Path,
 ):
     robot_file = tmp_path / "env_selector_list.resource"
@@ -276,8 +274,8 @@ My Keyword
     visitor = RobotVisitorVariableUses(variables)
     visitor.visit(model)
 
-    assert variables[normalize_variable_name("@{VAR_A_SERVERS}")].use_count == 0
-    assert variables[normalize_variable_name("@{VAR_B_SERVERS}")].use_count == 0
+    assert variables[normalize_variable_name("@{VAR_A_SERVERS}")].use_count == 1
+    assert variables[normalize_variable_name("@{VAR_B_SERVERS}")].use_count == 1
 
 
 def test_dynamic_selector_uses_feature_context_literals(tmp_path: Path):
@@ -351,75 +349,3 @@ Create Example Item
 
     assert variables[normalize_variable_name("${option alpha group}")].use_count == 1
     assert variables[normalize_variable_name("${option beta group}")].use_count == 0
-
-
-def test_dynamic_dotted_selector_counts_dictionary_root_with_prefixed_env(
-    tmp_path: Path,
-):
-    robot_file = tmp_path / "dictionary_selector.resource"
-    robot_file.write_text(
-        """
-*** Keywords ***
-Build URI
-    Log    ${${ENV}.${REGION}.${account_type}_PERSON_ID}
-""".lstrip(),
-        encoding="utf8",
-    )
-
-    model = parse_robot_file(robot_file)
-
-    variables = {
-        normalize_variable_name("&{ROOT}"): _make_variable("&{ROOT}"),
-        normalize_variable_name("${ENV}"): _make_variable_with_value(
-            "${ENV}",
-            "ROOTFE",
-        ),
-        normalize_variable_name("${REGION}"): _make_variable_with_value(
-            "${REGION}",
-            "EU",
-        ),
-    }
-
-    visitor = RobotVisitorVariableUses(variables)
-    visitor.register_context_literals(["SELF"])
-    visitor.visit(model)
-
-    assert variables[normalize_variable_name("&{ROOT}")].use_count == 1
-
-
-def test_dynamic_selector_ignores_unrelated_selector_context_literals(
-    tmp_path: Path,
-):
-    robot_file = tmp_path / "generic_selector.resource"
-    robot_file.write_text(
-        """
-*** Keywords ***
-Pick Target Option
-    Click    ${target option ${target selector id}}
-""".lstrip(),
-        encoding="utf8",
-    )
-
-    model = parse_robot_file(robot_file)
-
-    variables = {
-        normalize_variable_name("${target option alpha}"): _make_variable(
-            "${target option alpha}",
-        ),
-        normalize_variable_name("${target option beta}"): _make_variable(
-            "${target option beta}",
-        ),
-    }
-
-    visitor = RobotVisitorVariableUses(variables)
-    visitor.register_selector_context_literals(
-        "different selector id",
-        ["Alpha"],
-    )
-    visitor.visit(model)
-
-    assert (
-        variables[normalize_variable_name("${target option alpha}")].use_count
-        == 0
-    )
-    assert variables[normalize_variable_name("${target option beta}")].use_count == 0

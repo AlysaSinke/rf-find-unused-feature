@@ -52,7 +52,6 @@ class RobotVisitorVariableUses(ModelVisitor):
     def __init__(self, variable_defs: dict[str, VariableData]) -> None:
         self.variables = variable_defs
         self.context_literals_normalized: set[str] = set()
-        self.selector_context_literals_normalized: dict[str, set[str]] = {}
         super().__init__()
 
     def register_context_literals(self, values: Iterable[str]) -> None:
@@ -65,33 +64,6 @@ class RobotVisitorVariableUses(ModelVisitor):
                 continue
 
             self.context_literals_normalized.add(
-                normalize_variable_name(value, strip_decoration=False),
-            )
-
-    def register_selector_context_literals(
-        self,
-        selector_name: str,
-        values: Iterable[str],
-    ) -> None:
-        """
-        Register selector-scoped literals (for example from feature table columns).
-        """
-        selector_name_normalized = normalize_variable_name(
-            selector_name,
-            strip_decoration=False,
-        )
-        if selector_name_normalized == "":
-            return
-
-        selector_values = self.selector_context_literals_normalized.setdefault(
-            selector_name_normalized,
-            set(),
-        )
-        for value in values:
-            value = value.strip()
-            if value == "":
-                continue
-            selector_values.add(
                 normalize_variable_name(value, strip_decoration=False),
             )
 
@@ -345,30 +317,20 @@ class RobotVisitorVariableUses(ModelVisitor):
             candidates,
             prefix,
             suffix,
-            template_var_name,
         )
         if len(context_filtered_candidates) > 0:
             return context_filtered_candidates
 
-        if resolved_var != unresolved_template_var and resolved_var in self.variables:
-            return [resolved_var]
-
-        if len(candidates) == 1:
-            return candidates
-
-        if len(candidates) == 0:
+        if len(candidates) <= 1:
             return []
 
-        # Ambiguous dynamic template with multiple possible matches and no
-        # reliable selector context; avoid marking all candidates as used.
-        return []
+        return candidates
 
     def _filter_candidates_with_context_literals(
         self,
         candidates: list[str],
         prefix: str,
         suffix: str,
-        template_var_name: str,
     ) -> list[str]:
         """
         Keep dynamic-name candidates whose variable-specific segment appears in context literals.
@@ -377,42 +339,7 @@ class RobotVisitorVariableUses(ModelVisitor):
         `${asset class ${asset class id}}` to concrete variables like
         `${asset class business values}`.
         """
-        template_var_name_normalized = normalize_variable_name(
-            template_var_name,
-            strip_decoration=False,
-        )
-
-        selector_scoped_literals = self.selector_context_literals_normalized.get(
-            template_var_name_normalized,
-            set(),
-        )
-
-        # Selector-scoped literals are strongest signal (same semantic column).
-        selector_filtered = self._filter_candidates_against_literals(
-            candidates,
-            prefix,
-            suffix,
-            selector_scoped_literals,
-        )
-        if len(selector_filtered) > 0:
-            return selector_filtered
-
-        # Generic literals (embedded keyword call captures) are fallback.
-        return self._filter_candidates_against_literals(
-            candidates,
-            prefix,
-            suffix,
-            self.context_literals_normalized,
-        )
-
-    def _filter_candidates_against_literals(
-        self,
-        candidates: list[str],
-        prefix: str,
-        suffix: str,
-        literals: set[str],
-    ) -> list[str]:
-        if len(literals) == 0:
+        if len(self.context_literals_normalized) == 0:
             return []
 
         filtered = []
@@ -425,7 +352,7 @@ class RobotVisitorVariableUses(ModelVisitor):
             else:
                 middle = candidate[prefix_len:]
 
-            if middle in literals:
+            if middle in self.context_literals_normalized:
                 filtered.append(candidate)
 
         return filtered
@@ -433,10 +360,6 @@ class RobotVisitorVariableUses(ModelVisitor):
     def _normalize_extended_variable_syntax(self, var: str) -> str:
         if var in self.variables:
             return var
-
-        dict_root_match = self._match_dictionary_root_for_extended_var(var)
-        if dict_root_match is not None:
-            return dict_root_match
 
         var_name = var
         while len(var_name) > 0:
@@ -456,42 +379,6 @@ class RobotVisitorVariableUses(ModelVisitor):
 
         # Could not find var. Don't modify.
         return var
-
-    def _match_dictionary_root_for_extended_var(self, var: str) -> str | None:
-        """
-        Fallback for dynamic dotted syntax where selectors resolve to prefixed roots.
-
-        Example: `${${ENV}.${ENTITY}.${account_type}_ACCOUNT_PERSON_ID}` may become
-        `accbe.nl.self...` while the imported dictionary variable is `&{ACC}`.
-        In that case, map root `accbe` back to known dict root `acc`.
-        """
-        if "." not in var:
-            return None
-
-        root = var.split(".", maxsplit=1)[0]
-        root_normalized = normalize_variable_name(root)
-        if root_normalized == "":
-            return None
-
-        dict_candidates = [
-            normalized_name
-            for normalized_name, data in self.variables.items()
-            if data.name.startswith("&{")
-        ]
-        if len(dict_candidates) == 0:
-            return None
-
-        matching = [
-            candidate
-            for candidate in dict_candidates
-            if root_normalized.startswith(candidate)
-        ]
-        if len(matching) == 0:
-            return None
-
-        # Prefer the most specific root if multiple prefixes match.
-        matching = sorted(matching, key=len, reverse=True)
-        return matching[0]
 
     def _count_variable_use(self, normalized_name: str) -> None:
         """
