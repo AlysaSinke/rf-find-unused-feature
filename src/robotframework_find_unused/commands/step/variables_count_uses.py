@@ -5,10 +5,7 @@ from robotframework_find_unused.common.const import VariableData
 from robotframework_find_unused.parse.parse_feature_table import get_feature_table_cells
 from robotframework_find_unused.reporter.base.variable_reporter import VariableReporter
 from robotframework_find_unused.visitors.robot import visit_robot_files
-from robotframework_find_unused.visitors.robot.variable_count import (
-    RobotVisitorContextLiterals,
-    RobotVisitorVariableUses,
-)
+from robotframework_find_unused.visitors.robot.variable_count import RobotVisitorVariableUses
 
 
 def step_count_variable_uses(
@@ -24,11 +21,9 @@ def step_count_variable_uses(
 
     robot_like_file_paths = filter_robot_like_files(file_paths)
     feature_table_cells = _get_feature_table_cells(robot_like_file_paths)
-    context_literals = _get_dynamic_context_literals(robot_like_file_paths)
 
     visitor = RobotVisitorVariableUses(variable_defs)
     visitor.register_context_literals(feature_table_cells)
-    visitor.register_context_literals(context_literals)
     visit_robot_files(robot_like_file_paths, visitor)
     _count_feature_table_variable_uses(feature_table_cells, visitor)
 
@@ -55,9 +50,3 @@ def _get_feature_table_cells(file_paths: list[Path]) -> list[str]:
         table_cells.extend(get_feature_table_cells(feature_file))
 
     return table_cells
-
-
-def _get_dynamic_context_literals(file_paths: list[Path]) -> list[str]:
-    collector = RobotVisitorContextLiterals()
-    visit_robot_files(file_paths, collector)
-    return collector.get_context_literals()
