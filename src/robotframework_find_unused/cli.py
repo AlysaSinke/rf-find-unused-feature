@@ -269,9 +269,8 @@ def variables(
     Find unused global variables
 
     Traverse files in the given file path. In those files, count how often each global variable is
-    used. Variable uses in `.feature` files are counted from both step lines and table cells
-    (including Examples tables). Variables defined in a variables section or variable file with 0
-    uses are logged.
+    used. Variable uses in `.feature` files are counted. Variables defined in a variables section
+    or variable file with 0 uses are logged.
 
     ----------
 

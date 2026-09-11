@@ -144,12 +144,6 @@ class RobotVisitorVariableUses(ModelVisitor):
 
         return self.generic_visit(node)
 
-    def count_used_vars_in_strings(self, values: Iterable[str]) -> None:
-        """
-        Count variable use for free-form strings outside Robot AST nodes.
-        """
-        self._count_used_vars_in_args(values)
-
     def _count_used_vars_in_eval(self, eval_str: str) -> None:
         """
         Count used variables found in a python evaluation context

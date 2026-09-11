@@ -36,7 +36,7 @@ This is a command-line tool.
 
 ![Keywords command demo gif](./docs/gif/keywords/keywords.gif)
 
-Walk through your `.robot`, `.resource`, `.feature`, and `.py` files. In those files, count how often each
+Walk through your `.robot`, `.resource`, and `.py` files. In those files, count how often each
 keyword is used (called). Keywords with 0 uses are logged.
 
 ```shell
@@ -66,7 +66,7 @@ robotunused keywords --help
 
 ![Arguments command demo gif](./docs/gif/arguments/arguments.gif)
 
-Walk through your `.robot`, `.resource`, `.feature`, and `.py` files. In those files, count how often each
+Walk through your `.robot`, `.resource`, and `.py` files. In those files, count how often each
 argument is used during a keyword call. Arguments with 0 uses are logged.
 
 By default, will ignore arguments from unused keywords.
@@ -131,10 +131,8 @@ robotunused returns --help
 
 ![Variables command demo gif](./docs/gif/variables/variables.gif)
 
-Walk through your `.robot`, `.resource`, and `.feature` files. In those files, count how often each
-variable is used. In `.feature` files, usage is counted from both step lines and table cells
-(including `Examples` tables). Variables defined in a variables section or variable file with 0
-uses are logged.
+Walk through your `.robot` and `.resource` files. In those files, count how often each
+variable is used. Variables defined in a variables section or variable file with 0 uses are logged.
 
 ```shell
 robotunused variables
@@ -153,8 +151,6 @@ robotunused variables --help
 | -------------------- | ------------ | ------- | ---------------------------------------------------------------------------------------------------- |
 | `-c`, `--show-count` |              |         | Show usage count for all variables instead of only unused variables                                  |
 | `-f`, `--filter`     | Glob pattern |         | Only show variables who's name match the glob pattern. Matching without {brackets} and $@&% prefixes |
-| `--ignore-variable`  | Glob pattern |         | Ignore variables who's name match the glob pattern. Matching without {brackets} and $@&% prefixes |
-| `--yaml-variable-files` | `include` / `exclude` | `exclude` | How to output variables imported from `.yaml` / `.yml` variable files |
 | `-v`, `--verbose`    |              |         | Show more log output. When provided twice: Show even more log output                                 |
 
 ### Find unused files
@@ -200,7 +196,7 @@ The following is a list of generic limitations. These limitations apply to all c
 
 ### Generic limitation 1: Less used filetypes are ignored
 
-Find Unused supports `.robot`, `.resource`, `.feature`, and `.py` files. It also supports `.json`, `.yaml`, and
+Find Unused supports `.robot`, `.resource`, and `.py` files. It also supports `.json`, `.yaml`, and
 `.py` variables files.
 
 Anything else is unsupported. This includes older filetypes (like `.html` and `.tsv`) and less used

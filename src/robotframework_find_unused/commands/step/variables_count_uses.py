@@ -2,7 +2,6 @@ from pathlib import Path
 
 from robotframework_find_unused.commands.step.file_types import filter_robot_like_files
 from robotframework_find_unused.common.const import VariableData
-from robotframework_find_unused.parse.parse_feature_table import get_feature_table_cells
 from robotframework_find_unused.reporter.base.variable_reporter import VariableReporter
 from robotframework_find_unused.visitors.robot import visit_robot_files
 from robotframework_find_unused.visitors.robot.variable_count import RobotVisitorVariableUses
@@ -23,22 +22,8 @@ def step_count_variable_uses(
 
     visitor = RobotVisitorVariableUses(variable_defs)
     visit_robot_files(robot_like_file_paths, visitor)
-    _count_feature_table_variable_uses(robot_like_file_paths, visitor)
 
     variables = list(visitor.variables.values())
 
     reporter.on_count_variable_uses_end(file_paths, variable_defs, variables)
     return variables
-
-
-def _count_feature_table_variable_uses(
-    file_paths: list[Path],
-    visitor: RobotVisitorVariableUses,
-) -> None:
-    feature_files = [p for p in file_paths if p.suffix.lower() == ".feature"]
-    for feature_file in feature_files:
-        table_cells = get_feature_table_cells(feature_file)
-        if len(table_cells) == 0:
-            continue
-
-        visitor.count_used_vars_in_strings(table_cells)
