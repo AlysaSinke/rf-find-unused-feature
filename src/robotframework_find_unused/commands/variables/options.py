@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass
@@ -12,4 +13,5 @@ class VariableOptions:
     ignored_variables: list[str]
     verbose: int
     pythonpath: list[str]
+    yaml_variable_files: Literal["include", "exclude"]
     source_path: str

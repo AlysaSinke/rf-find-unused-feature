@@ -14,6 +14,8 @@ from robotframework_find_unused.visitors.robot.variable_definition import (
 def step_get_variable_definitions(
     file_paths: list[Path],
     source_path: Path,
+    *,
+    include_yaml_variable_files: bool,
     reporter: VariableReporter,
 ):
     """
@@ -29,6 +31,7 @@ def step_get_variable_definitions(
         source_path,
         set(file_paths),
         reporter,
+        include_yaml_variable_files=include_yaml_variable_files,
     )
     visit_robot_files(definition_file_paths, visitor)
 

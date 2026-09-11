@@ -7,5 +7,21 @@ class TestCommandAcceptance(AcceptanceTest):
             ["variables", "./robot_test_data", "--show-count", "--pythonpath", "./robot_test_data"],
             "./expected_output.log",
             __file__,
+            expected_exit_code=17,
+        )
+
+    def test_variables_command_variable_files_include_yaml(self):
+        self.run_test(
+            [
+                "variables",
+                "./robot_test_data",
+                "--show-count",
+                "--pythonpath",
+                "./robot_test_data",
+                "--yaml-variable-files",
+                "include",
+            ],
+            "./expected_output_include_yaml.log",
+            __file__,
             expected_exit_code=18,
         )
