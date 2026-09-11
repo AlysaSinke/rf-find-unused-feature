@@ -344,15 +344,6 @@ class RobotVisitorVariableUses(ModelVisitor):
             if var_name.startswith(prefix) and var_name.endswith(suffix)
         ]
 
-        is_runtime_branch_selector = (
-            len(candidates) > 1
-            and self._is_runtime_selector_template(template_var_name)
-            and (
-                prefix != ""
-                or formatted_var.startswith(("@{", "&{"))
-            )
-        )
-
         context_filtered_candidates = self._filter_candidates_with_context_literals(
             candidates,
             prefix,
@@ -360,13 +351,6 @@ class RobotVisitorVariableUses(ModelVisitor):
             template_var_name,
             raw_template_var_name,
         )
-
-        # Runtime selector templates are commonly configured per profile/run.
-        # For prefixed branch names (e.g. REPORT_PATH_${ENTITY}), count all
-        # matching branches instead of narrowing to partial context literals.
-        if is_runtime_branch_selector:
-            return candidates
-
         if len(context_filtered_candidates) > 0:
             return context_filtered_candidates
 
@@ -378,6 +362,19 @@ class RobotVisitorVariableUses(ModelVisitor):
             if len(candidates) == 1:
                 return candidates
             return []
+
+        # Runtime selector templates are commonly configured per profile/run.
+        # For prefixed branch names (e.g. REPORT_PATH_${ENTITY}), count all
+        # matching branches instead of only the currently resolved default.
+        if (
+            len(candidates) > 1
+            and self._is_runtime_selector_template(template_var_name)
+            and (
+                prefix != ""
+                or formatted_var.startswith(("@{", "&{"))
+            )
+        ):
+            return candidates
 
         if resolved_var != unresolved_template_var and resolved_var in self.variables:
             return [resolved_var]
@@ -409,7 +406,6 @@ class RobotVisitorVariableUses(ModelVisitor):
             "env",
             "environment",
             "entity",
-            "month",
         }
 
     def _filter_candidates_with_context_literals(

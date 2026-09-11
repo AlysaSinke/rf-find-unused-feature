@@ -590,44 +590,6 @@ Copy Expected File
     assert variables[normalize_variable_name("${REPORT_PATH_BETA}")].use_count == 1
 
 
-def test_dynamic_scalar_template_with_unresolved_month_selector_counts_candidates(
-    tmp_path: Path,
-):
-    robot_file = tmp_path / "month_branch_path.resource"
-    robot_file.write_text(
-        """
-*** Keywords ***
-Select Expiry Month
-    Click    ${expiry month ${month}}
-""".lstrip(),
-        encoding="utf8",
-    )
-
-    model = parse_robot_file(robot_file)
-
-    variables = {
-        normalize_variable_name("${expiry month january}"): _make_variable(
-            "${expiry month january}",
-        ),
-        normalize_variable_name("${expiry month february}"): _make_variable(
-            "${expiry month february}",
-        ),
-    }
-
-    visitor = RobotVisitorVariableUses(variables)
-    visitor.register_context_literals(["january"])
-    visitor.visit(model)
-
-    assert (
-        variables[normalize_variable_name("${expiry month january}")].use_count
-        == 1
-    )
-    assert (
-        variables[normalize_variable_name("${expiry month february}")].use_count
-        == 1
-    )
-
-
 def test_dynamic_scalar_template_with_resolved_runtime_selector_counts_candidates(
     tmp_path: Path,
 ):
