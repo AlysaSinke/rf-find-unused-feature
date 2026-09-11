@@ -428,8 +428,6 @@ class RobotVisitorVariableUses(ModelVisitor):
             strip_decoration=False,
         )
 
-        selector_signal_candidates: list[str] = []
-
         selector_scoped_literals = self.selector_context_literals_normalized.get(
             template_var_name_normalized,
             set(),
@@ -443,7 +441,7 @@ class RobotVisitorVariableUses(ModelVisitor):
             selector_scoped_literals,
         )
         if len(selector_filtered) > 0:
-            selector_signal_candidates.extend(selector_filtered)
+            return selector_filtered
 
         for alias_selector_name in self._get_selector_alias_names(
             raw_template_var_name,
@@ -459,7 +457,7 @@ class RobotVisitorVariableUses(ModelVisitor):
                 alias_literals,
             )
             if len(alias_filtered) > 0:
-                selector_signal_candidates.extend(alias_filtered)
+                return alias_filtered
 
         boolean_filtered = self._filter_boolean_candidates_with_selector_literals(
             candidates,
@@ -467,23 +465,15 @@ class RobotVisitorVariableUses(ModelVisitor):
             suffix,
         )
         if len(boolean_filtered) > 0:
-            selector_signal_candidates.extend(boolean_filtered)
+            return boolean_filtered
 
         # Generic literals (embedded keyword call captures) are fallback.
-        generic_filtered = self._filter_candidates_against_literals(
+        return self._filter_candidates_against_literals(
             candidates,
             prefix,
             suffix,
             self.context_literals_normalized,
         )
-
-        if len(selector_signal_candidates) > 0 and len(generic_filtered) > 0:
-            return list(dict.fromkeys(selector_signal_candidates + generic_filtered))
-
-        if len(selector_signal_candidates) > 0:
-            return list(dict.fromkeys(selector_signal_candidates))
-
-        return generic_filtered
 
     def _filter_candidates_against_literals(
         self,
