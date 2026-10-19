@@ -5,4 +5,5 @@ Counting variable usage...
 [ DONE ] Found 1 variable uses of gathered variables
 
 Found 1 unused variables:
-    ${UNUSED_VAR}
+    ./vars.resource
+        3: ${UNUSED_VAR}

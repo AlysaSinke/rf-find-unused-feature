@@ -5,16 +5,17 @@ Counting variable usage...
 [ DONE ] Found 23 variable uses of gathered variables
 
 Found 13 unused variables:
-    &{dict_unused: dict[str, str]}
-    ${dot: Secret}
-    ${easyAs${abc}: str} -> ${easyasabcdefg}
-    ${float_unused: float}
-    ${global_scope_var_keyword_unused: str}
-    ${global_scope_var_unused: str}
-    ${int_unused: int}
-    @{list_unused: list[str]}
-    ${string_unused: str}
-    ${suite_scope_var_keyword_unused: str}
-    ${suite_scope_var_unused: str}
-    ${test_scope_var_keyword_unused: str}
-    ${test_scope_var_unused: str}
+    ./test.robot
+        2: ${string_unused: str}
+        3: ${int_unused: int}
+        4: ${float_unused: float}
+        5: @{list_unused: list[str]}
+        6: &{dict_unused: dict[str, str]}
+        7: ${dot: Secret}
+        18: ${easyAs${abc}: str} -> ${easyasabcdefg}
+        25: ${test_scope_var_unused: str}
+        26: ${suite_scope_var_unused: str}
+        27: ${global_scope_var_unused: str}
+        29: ${test_scope_var_keyword_unused: str}
+        30: ${suite_scope_var_keyword_unused: str}
+        31: ${global_scope_var_keyword_unused: str}

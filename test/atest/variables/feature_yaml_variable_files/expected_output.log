@@ -5,5 +5,7 @@ Counting variable usage...
 [ DONE ] Found 3 variable uses of gathered variables
 
 Found 2 unused variables:
-    ${resource_unused}
-    ${yaml_unused}
+    ./variables.yaml
+        3: ${yaml_unused}
+    ./vars.resource
+        7: ${resource_unused}

@@ -4,24 +4,24 @@ Gathering variables definitions...
 Counting variable usage...
 [ DONE ] Found 2 variable uses of gathered variables
 
-use_count	variable
-0	${class_var_from_python_class_file}
-0	${dynamic_init_var_from_python_class_file}
-0	${dynamic_var_from_python_dynamic_class_file}
-0	${dynamic_var_from_python_dynamic_class_file_using_user_args}
-0	${dynamic_var_from_python_function_file}
-0	${dynamic_var_from_python_function_file_using_user_args}
-0	${dynamic_var_from_python_module_file}
-0	${dynamic_var_from_python_module_file_using_all}
-0	${static_init_var_from_python_class_file}
-0	${static_var_from_python_dynamic_class_file}
-0	${static_var_from_python_function_file}
-0	${static_var_from_python_function_file_using_user_args}
-0	${static_var_from_python_module_file}
-0	${static_var_from_python_module_file_using_all}
-0	${var_from_json_file}
-0	${var_from_resource_file}
-0	${var_from_robot_file}
-0	${var_from_yaml_file}
-1	&{dict_var_from_json_file}
-1	@{list_var_from_json_file}
+use_count	variable	defined_in
+0	${class_var_from_python_class_file}	./StaticClassName.py
+0	${dynamic_init_var_from_python_class_file}	./StaticClassName.py
+0	${dynamic_var_from_python_dynamic_class_file}	./DynamicClassName.py
+0	${dynamic_var_from_python_dynamic_class_file_using_user_args}	./DynamicClassName.py
+0	${dynamic_var_from_python_function_file}	./variables_function.py
+0	${dynamic_var_from_python_function_file_using_user_args}	./variables_function_args.py
+0	${dynamic_var_from_python_module_file}	./variables_module.py
+0	${dynamic_var_from_python_module_file_using_all}	./variables_module_all.py
+0	${static_init_var_from_python_class_file}	./StaticClassName.py
+0	${static_var_from_python_dynamic_class_file}	./DynamicClassName.py
+0	${static_var_from_python_function_file}	./variables_function.py
+0	${static_var_from_python_function_file_using_user_args}	./variables_function_args.py
+0	${static_var_from_python_module_file}	./variables_module.py
+0	${static_var_from_python_module_file_using_all}	./variables_module_all.py
+0	${var_from_json_file}	./variables.json:2
+0	${var_from_resource_file}	./variables.resource:2
+0	${var_from_robot_file}	./test.robot:13
+0	${var_from_yaml_file}	./variables.yaml:1
+1	&{dict_var_from_json_file}	./variables.json:8
+1	@{list_var_from_json_file}	./variables.json:3

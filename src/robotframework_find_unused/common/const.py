@@ -64,6 +64,7 @@ class VariableData(VariableValue):
     use_count: int
     defined_in_type: VariableDefinedInType
     defined_in: str
+    defined_at_line: int | None = None
 
 
 @dataclass

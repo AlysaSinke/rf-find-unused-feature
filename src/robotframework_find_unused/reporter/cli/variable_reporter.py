@@ -10,6 +10,7 @@ from robotframework_find_unused.common.const import (
     VERBOSE_SINGLE,
     VariableData,
 )
+from robotframework_find_unused.convert.convert_path import to_relative_path
 from robotframework_find_unused.reporter.base.variable_reporter import VariableReporter
 
 from .common import (
@@ -18,6 +19,7 @@ from .common import (
     INDENT,
     NOTE,
     pretty_variable,
+    pretty_variable_location,
 )
 from .partial.discover_files import PartialCliReporterDiscoverFiles
 
@@ -162,20 +164,49 @@ class VariableCliReporter(VariableReporter, PartialCliReporterDiscoverFiles):
             sorted_variables = sorted(counted_variables, key=lambda var: var.normalized_name)
             sorted_variables = sorted(sorted_variables, key=lambda var: var.use_count)
 
-            click.echo("use_count\tvariable")
+            click.echo("use_count\tvariable\tdefined_in")
             for var in sorted_variables:
-                click.echo("\t".join([str(var.use_count), pretty_variable(var)]))
+                click.echo(
+                    "\t".join(
+                        [
+                            str(var.use_count),
+                            pretty_variable(var),
+                            click.style(self._variable_location(var), fg="bright_black"),
+                        ],
+                    ),
+                )
         else:
             unused_variables = [var for var in counted_variables if var.use_count == 0]
-            unused_variables = sorted(unused_variables, key=lambda var: var.normalized_name)
 
             click.echo(f"Found {len(unused_variables)} unused variables:")
-            for var in unused_variables:
-                click.echo(INDENT + pretty_variable(var))
+            self._echo_variables_by_file(unused_variables)
 
         unused_variables = [var for var in counted_variables if var.use_count == 0]
         exit_code = len(unused_variables)
         sys.exit(min(exit_code, 200))
+
+    def _echo_variables_by_file(self, variables: list[VariableData]) -> None:
+        """Print variables grouped by the file they are defined in"""
+        by_file: dict[str, list[VariableData]] = {}
+        for var in variables:
+            file_path = to_relative_path(self._source_path(), Path(var.defined_in))
+            by_file.setdefault(file_path, []).append(var)
+
+        for file_path, file_variables in sorted(by_file.items()):
+            click.echo(INDENT + click.style(file_path, fg="bright_cyan"))
+
+            for var in sorted(file_variables, key=_sort_by_line_then_name):
+                line = ""
+                if var.defined_at_line is not None:
+                    line = click.style(f"{var.defined_at_line}: ", fg="bright_black")
+
+                click.echo(INDENT + INDENT + line + pretty_variable(var))
+
+    def _variable_location(self, var: VariableData) -> str:
+        return pretty_variable_location(var, self._source_path())
+
+    def _source_path(self) -> Path:
+        return Path(self.options.source_path)
 
     def on_file_import_error(self, error: Exception, import_str: str, import_from_path: str):
         if isinstance(error, ImportError):
@@ -191,3 +222,9 @@ class VariableCliReporter(VariableReporter, PartialCliReporterDiscoverFiles):
         click.echo(f"{ERROR} Something went very wrong. Details below:")
         click.echo(f"{ERROR} {error}")
         click.echo()
+
+
+def _sort_by_line_then_name(var: VariableData) -> tuple[int, str]:
+    """Sort by definition line. Variables without a known line go last."""
+    line = var.defined_at_line if var.defined_at_line is not None else sys.maxsize
+    return (line, var.normalized_name)

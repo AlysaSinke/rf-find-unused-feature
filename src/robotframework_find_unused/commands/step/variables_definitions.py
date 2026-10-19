@@ -59,6 +59,7 @@ def _resolve_vars_in_var_name(variables: dict[str, VariableData]) -> dict[str, V
             use_count=var.use_count,
             defined_in_type=var.defined_in_type,
             defined_in=var.defined_in,
+            defined_at_line=var.defined_at_line,
             value=var.value,
         )
 

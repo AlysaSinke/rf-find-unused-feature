@@ -15,12 +15,13 @@ Counting variable usage...
         Average	1.1 uses per gathered variable
 
 Found 9 unused variables:
-    &{dict_unused}
-    ${dot}
-    ${float_unused}
-    ${global_scope_var_keyword_unused}
-    ${int_unused}
-    @{list_unused}
-    ${string_unused}
-    ${suite_scope_var_keyword_unused}
-    ${test_scope_var_keyword_unused}
+    ./test.robot
+        2: ${string_unused}
+        3: ${int_unused}
+        4: ${float_unused}
+        5: @{list_unused}
+        6: &{dict_unused}
+        7: ${dot}
+        21: ${test_scope_var_keyword_unused}
+        22: ${suite_scope_var_keyword_unused}
+        23: ${global_scope_var_keyword_unused}

@@ -1,6 +1,9 @@
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import click
+
+from robotframework_find_unused.convert.convert_path import to_relative_path
 
 if TYPE_CHECKING:
     from robotframework_find_unused.common.const import FileUseType, KeywordData, VariableData
@@ -68,3 +71,15 @@ def pretty_variable(var: "VariableData") -> str:
         out += click.style(f" -> {var.resolved_name}", fg="bright_black")
 
     return out
+
+
+def pretty_variable_location(var: "VariableData", source_path: "Path") -> str:
+    """
+    Format the location a variable is defined in for output to the user
+    """
+    location = to_relative_path(source_path, Path(var.defined_in))
+
+    if var.defined_at_line is not None:
+        location += f":{var.defined_at_line}"
+
+    return location

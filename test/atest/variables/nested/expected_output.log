@@ -4,14 +4,14 @@ Gathering variables definitions...
 Counting variable usage...
 [ DONE ] Found 25 variable uses of gathered variables
 
-use_count	variable
-1	${greet}
-1	${h}
-1	${hello1}
-1	${helloTrue}
-2	${abc}
-2	${easyAs${abc}} -> ${easyasabcdefg}
-3	${hw}
-3	${place}
-4	${greeting}
-7	${helloWorld}
+use_count	variable	defined_in
+1	${greet}	./test.robot:5
+1	${h}	./test.robot:9
+1	${hello1}	./test.robot:6
+1	${helloTrue}	./test.robot:7
+2	${abc}	./test.robot:11
+2	${easyAs${abc}} -> ${easyasabcdefg}	./test.robot:12
+3	${hw}	./test.robot:8
+3	${place}	./test.robot:3
+4	${greeting}	./test.robot:4
+7	${helloWorld}	./test.robot:2

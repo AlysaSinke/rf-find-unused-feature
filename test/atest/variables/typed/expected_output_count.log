@@ -4,30 +4,30 @@ Gathering variables definitions...
 Counting variable usage...
 [ DONE ] Found 23 variable uses of gathered variables
 
-use_count	variable
-0	&{dict_unused: dict[str, str]}
-0	${dot: Secret}
-0	${easyAs${abc}: str} -> ${easyasabcdefg}
-0	${float_unused: float}
-0	${global_scope_var_keyword_unused: str}
-0	${global_scope_var_unused: str}
-0	${int_unused: int}
-0	@{list_unused: list[str]}
-0	${string_unused: str}
-0	${suite_scope_var_keyword_unused: str}
-0	${suite_scope_var_unused: str}
-0	${test_scope_var_keyword_unused: str}
-0	${test_scope_var_unused: str}
-1	${abc}
-1	${float_used: float}
-1	${global_scope_var_keyword_used: str}
-1	${global_scope_var_used: str}
-1	${int_used: int}
-1	${suite_scope_var_keyword_used: str}
-1	${suite_scope_var_used: str}
-1	${test_scope_var_keyword_used: str}
-1	${test_scope_var_used: str}
-2	${dot.separated.used: str}
-4	&{dict_used: dict[str, str]}
-4	@{list_used: list[str]}
-4	${string_used: str}
+use_count	variable	defined_in
+0	&{dict_unused: dict[str, str]}	./test.robot:6
+0	${dot: Secret}	./test.robot:7
+0	${easyAs${abc}: str} -> ${easyasabcdefg}	./test.robot:18
+0	${float_unused: float}	./test.robot:4
+0	${global_scope_var_keyword_unused: str}	./test.robot:31
+0	${global_scope_var_unused: str}	./test.robot:27
+0	${int_unused: int}	./test.robot:3
+0	@{list_unused: list[str]}	./test.robot:5
+0	${string_unused: str}	./test.robot:2
+0	${suite_scope_var_keyword_unused: str}	./test.robot:30
+0	${suite_scope_var_unused: str}	./test.robot:26
+0	${test_scope_var_keyword_unused: str}	./test.robot:29
+0	${test_scope_var_unused: str}	./test.robot:25
+1	${abc}	./test.robot:17
+1	${float_used: float}	./test.robot:11
+1	${global_scope_var_keyword_used: str}	./test.robot:41
+1	${global_scope_var_used: str}	./test.robot:37
+1	${int_used: int}	./test.robot:10
+1	${suite_scope_var_keyword_used: str}	./test.robot:40
+1	${suite_scope_var_used: str}	./test.robot:36
+1	${test_scope_var_keyword_used: str}	./test.robot:39
+1	${test_scope_var_used: str}	./test.robot:35
+2	${dot.separated.used: str}	./test.robot:14
+4	&{dict_used: dict[str, str]}	./test.robot:13
+4	@{list_used: list[str]}	./test.robot:12
+4	${string_used: str}	./test.robot:9

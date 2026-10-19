@@ -14,6 +14,7 @@ from robotframework_find_unused.common.normalize import (
     normalize_variable_name,
 )
 from robotframework_find_unused.convert.convert_path import to_relative_path
+from robotframework_find_unused.parse.parse_variable_file_lines import find_variable_line_numbers
 from robotframework_find_unused.resolve.resolve_import_string import resolve_import_string
 
 if TYPE_CHECKING:
@@ -76,6 +77,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
                 "variables_section",
                 self.current_working_file,
                 var_node.value,
+                var_node.lineno,
             )
 
         return self.generic_visit(node)
@@ -122,6 +124,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             "runtime",
             self.current_working_file,
             var_value,
+            node.lineno,
         )
 
     def visit_Var(self, node: "Var"):  # noqa: N802
@@ -140,6 +143,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             "runtime",
             self.current_working_file,
             node.value,
+            node.lineno,
         )
 
     def _import_variable_file(self, import_path: Path, import_args: tuple[str, ...]) -> None:
@@ -161,8 +165,16 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             args=import_args,
         )
 
+        line_numbers = find_variable_line_numbers(import_path)
+
         for var_name in var_store.as_dict(decoration=True):
-            self._register_variable(var_name, "variable_file", import_path, [])
+            self._register_variable(
+                var_name,
+                "variable_file",
+                import_path,
+                [],
+                line_numbers.get(normalize_variable_name(var_name)),
+            )
 
     def _register_variable(
         self,
@@ -170,6 +182,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
         defined_in_type: VariableDefinedInType,
         defined_in: Path,
         value: Iterable[str],
+        defined_at_line: int | None = None,
     ) -> None:
         (var_name, var_type) = self._parse_var_name(name)
 
@@ -196,6 +209,7 @@ class RobotVisitorVariableDefinitions(ModelVisitor):
             use_count=0,
             defined_in_type=defined_in_type,
             defined_in=defined_in.as_posix(),
+            defined_at_line=defined_at_line,
             value=value,
         )
 

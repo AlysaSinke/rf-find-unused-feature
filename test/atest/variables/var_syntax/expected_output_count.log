@@ -4,16 +4,16 @@ Gathering variables definitions...
 Counting variable usage...
 [ DONE ] Found 6 variable uses of gathered variables
 
-use_count	variable
-0	${global_scope_var_keyword_unused}
-0	${global_scope_var_unused}
-0	${suite_scope_var_keyword_unused}
-0	${suite_scope_var_unused}
-0	${test_scope_var_keyword_unused}
-0	${test_scope_var_unused}
-1	${global_scope_var_keyword_used}
-1	${global_scope_var_used}
-1	${suite_scope_var_keyword_used}
-1	${suite_scope_var_used}
-1	${test_scope_var_keyword_used}
-1	${test_scope_var_used}
+use_count	variable	defined_in
+0	${global_scope_var_keyword_unused}	./test.robot:12
+0	${global_scope_var_unused}	./test.robot:8
+0	${suite_scope_var_keyword_unused}	./test.robot:11
+0	${suite_scope_var_unused}	./test.robot:7
+0	${test_scope_var_keyword_unused}	./test.robot:10
+0	${test_scope_var_unused}	./test.robot:6
+1	${global_scope_var_keyword_used}	./test.robot:23
+1	${global_scope_var_used}	./test.robot:19
+1	${suite_scope_var_keyword_used}	./test.robot:22
+1	${suite_scope_var_used}	./test.robot:18
+1	${test_scope_var_keyword_used}	./test.robot:21
+1	${test_scope_var_used}	./test.robot:17
