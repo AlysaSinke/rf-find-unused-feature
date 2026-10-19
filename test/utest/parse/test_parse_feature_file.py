@@ -39,6 +39,72 @@ Background details for humans only
     )
 
 
+def test_parse_feature_file_expands_examples_placeholders(tmp_path: Path):
+    feature_file = tmp_path / "outline.feature"
+    feature_file.write_text(
+        """
+Feature: Shapes
+
+Background:
+Given I open the shape page
+
+Scenario: Draw <shape> shape
+When I draw <shape> shape
+Then The <shape> shape should exist
+
+Examples:
+| shape  |
+| circle |
+| square |
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    actual = parse_feature_file(feature_file)
+
+    assert actual == (
+        "*** Test Cases ***\n"
+        "Feature\n"
+        "    Given I open the shape page\n"
+        "    When I draw <shape> shape\n"
+        "    When I draw circle shape\n"
+        "    When I draw square shape\n"
+        "    Then The <shape> shape should exist\n"
+        "    Then The circle shape should exist\n"
+        "    Then The square shape should exist\n"
+    )
+
+
+def test_parse_feature_file_does_not_leak_examples_between_scenarios(tmp_path: Path):
+    feature_file = tmp_path / "outline.feature"
+    feature_file.write_text(
+        """
+Feature: Shapes
+
+Scenario: First
+When I draw <shape> shape
+
+Examples:
+| shape  |
+| circle |
+
+Scenario: Second
+When I erase <shape> shape
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    actual = parse_feature_file(feature_file)
+
+    assert actual == (
+        "*** Test Cases ***\n"
+        "Feature\n"
+        "    When I draw <shape> shape\n"
+        "    When I draw circle shape\n"
+        "    When I erase <shape> shape\n"
+    )
+
+
 def test_parse_feature_file_returns_placeholder_when_no_steps(tmp_path: Path):
     feature_file = tmp_path / "empty.feature"
     feature_file.write_text(
