@@ -140,6 +140,18 @@ uses are logged.
 robotunused variables
 ```
 
+Unused variables are grouped by the file they are defined in. For variables defined in a variables
+section, through `VAR`/`Set * Variable`, or in a `.yaml`/`.json` variable file, the line number of
+the definition is shown as well:
+
+```text
+Found 2 unused variables:
+    ./resources/locators.yaml
+        3: ${unused locator}
+    ./resources/common.resource
+        7: ${unused resource variable}
+```
+
 Please note that there are limitations. For an overview of current limitations, run the following
 command:
 
