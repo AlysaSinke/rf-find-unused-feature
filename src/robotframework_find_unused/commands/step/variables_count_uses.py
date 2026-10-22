@@ -28,12 +28,16 @@ def step_count_variable_uses(
     robot_like_file_paths = filter_robot_like_files(file_paths)
     feature_table_cells = _get_feature_table_cells(robot_like_file_paths)
     feature_selector_literals = _get_feature_selector_literals(robot_like_file_paths)
-    context_literals = _get_dynamic_context_literals(robot_like_file_paths)
+    context_collector = _collect_dynamic_context_literals(robot_like_file_paths)
 
     visitor = RobotVisitorVariableUses(variable_defs)
     for selector_name, selector_values in feature_selector_literals.items():
         visitor.register_selector_context_literals(selector_name, selector_values)
-    visitor.register_context_literals(context_literals)
+    for selector_name, selector_values in (
+        context_collector.get_selector_context_literals().items()
+    ):
+        visitor.register_selector_context_literals(selector_name, selector_values)
+    visitor.register_context_literals(context_collector.get_context_literals())
     visit_robot_files(robot_like_file_paths, visitor)
     _count_feature_table_variable_uses(feature_table_cells, visitor)
 
@@ -75,7 +79,9 @@ def _get_feature_selector_literals(file_paths: list[Path]) -> dict[str, list[str
     return selector_literals
 
 
-def _get_dynamic_context_literals(file_paths: list[Path]) -> list[str]:
+def _collect_dynamic_context_literals(
+    file_paths: list[Path],
+) -> RobotVisitorContextLiterals:
     collector = RobotVisitorContextLiterals()
     visit_robot_files(file_paths, collector)
-    return collector.get_context_literals()
+    return collector

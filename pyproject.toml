@@ -46,7 +46,8 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
-norecursedirs = ['robot', 'src', 'test/projects']
+# Only the `robot` fixture folders of the acceptance tests hold non-test python files.
+norecursedirs = ['test/atest/*/*/robot', 'src', 'test/projects']
 python_files = ['test/**/*.py']
 
 [tool.ruff]

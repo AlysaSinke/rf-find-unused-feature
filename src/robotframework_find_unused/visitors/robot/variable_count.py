@@ -44,7 +44,8 @@ class RobotVisitorVariableUses(ModelVisitor):
     # Details: https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#inline-python-evaluation
     _pattern_inline_eval = re.compile(r"\${{(.+?)}}")
     _pattern_feature_outline_arg = re.compile(r"<([^<>]+)>")
-    _pattern_dynamic_name_template = re.compile(r"^(.*)\$\{([a-z0-9]+)\}(.*)$")
+    # Trailing extended syntax (`${file_type.lower()}`) is not part of the selector name.
+    _pattern_dynamic_name_template = re.compile(r"^(.*)\$\{([a-z0-9]+)[^{}]*\}(.*)$")
     _pattern_dynamic_name_template_raw = re.compile(
         r"^[\$@&%]\{(.*)\$\{([^{}]+)\}(.*)\}$",
     )
@@ -473,21 +474,18 @@ class RobotVisitorVariableUses(ModelVisitor):
         if len(boolean_filtered) > 0:
             selector_signal_candidates.extend(boolean_filtered)
 
-        # Generic literals (embedded keyword call captures) are fallback.
-        generic_filtered = self._filter_candidates_against_literals(
+        # Literals captured for this selector describe every value the selector can take,
+        # so unrelated literals from other selectors must not widen the result.
+        if len(selector_signal_candidates) > 0:
+            return list(dict.fromkeys(selector_signal_candidates))
+
+        # Generic literals (unattributed captures) are fallback.
+        return self._filter_candidates_against_literals(
             candidates,
             prefix,
             suffix,
             self.context_literals_normalized,
         )
-
-        if len(selector_signal_candidates) > 0 and len(generic_filtered) > 0:
-            return list(dict.fromkeys(selector_signal_candidates + generic_filtered))
-
-        if len(selector_signal_candidates) > 0:
-            return list(dict.fromkeys(selector_signal_candidates))
-
-        return generic_filtered
 
     def _filter_candidates_against_literals(
         self,
@@ -657,7 +655,7 @@ class RobotVisitorContextLiterals(ModelVisitor):
     Collect plain-text context literals from embedded-argument keyword calls.
     """
 
-    _embedded_patterns: list[re.Pattern]
+    _embedded_patterns: list[tuple[re.Pattern, list[str]]]
     _normalized_calls: list[str]
     _pattern_bdd_prefix = re.compile(r"^(given|when|then|and|but)\s+", re.IGNORECASE)
 
@@ -683,24 +681,46 @@ class RobotVisitorContextLiterals(ModelVisitor):
         return self.generic_visit(node)
 
     def get_context_literals(self) -> list[str]:
-        if len(self._embedded_patterns) == 0 or len(self._normalized_calls) == 0:
-            return []
-
         values: set[str] = set()
+        for literals in self.get_selector_context_literals().values():
+            values.update(literals)
+
+        return list(values)
+
+    def get_selector_context_literals(self) -> dict[str, list[str]]:
+        """
+        Return captured literals grouped by the embedded argument they were captured from.
+
+        A call to `Add Identification ${identification} With Value ${value}` registers its
+        first argument under selector `identification`, so a dynamic name like
+        `${identification ${identification}}` only resolves to the values that are really
+        passed to that keyword.
+        """
+        if len(self._embedded_patterns) == 0 or len(self._normalized_calls) == 0:
+            return {}
+
+        values: dict[str, set[str]] = {}
         for call in self._normalized_calls:
-            for pattern in self._embedded_patterns:
+            for pattern, selector_names in self._embedded_patterns:
                 match = pattern.fullmatch(call)
                 if not match:
                     continue
 
-                for value in match.groups():
-                    if value == "":
+                for selector_name, value in zip(
+                    selector_names,
+                    match.groups(),
+                    strict=True,
+                ):
+                    if value == "" or selector_name == "":
                         continue
-                    values.add(value)
+                    values.setdefault(selector_name, set()).add(value)
 
-        return list(values)
+        return {name: list(literals) for name, literals in values.items()}
 
-    def _build_embedded_capture_pattern(self, keyword_name: str) -> re.Pattern | None:
+    def _build_embedded_capture_pattern(
+        self,
+        keyword_name: str,
+    ) -> tuple[re.Pattern, list[str]] | None:
         normalized = normalize_keyword_name(keyword_name)
         embedded_vars = get_variables_in_string(normalized)
         if len(embedded_vars) == 0:
@@ -708,11 +728,13 @@ class RobotVisitorContextLiterals(ModelVisitor):
 
         pattern = "^"
         remaining = normalized
+        selector_names = []
         for embedded_var in embedded_vars:
             (prefix, remaining) = remaining.split(embedded_var, maxsplit=1)
             pattern += re.escape(prefix)
             pattern += "(.+?)"
+            selector_names.append(normalize_variable_name(embedded_var))
         pattern += re.escape(remaining)
         pattern += "$"
-        return re.compile(pattern)
+        return (re.compile(pattern), selector_names)
 

@@ -353,10 +353,69 @@ Create Example Item
     assert variables[normalize_variable_name("${option beta group}")].use_count == 0
 
 
-def test_dynamic_selector_merges_selector_and_embedded_context_literals(
+def test_dynamic_selector_uses_scenario_outline_example_values(tmp_path: Path):
+    robot_file = tmp_path / "outline_selector.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+I Set The Category To ${category id}
+    Click    ${category ${category id}}
+""".lstrip(),
+        encoding="utf8",
+    )
+    feature_file = tmp_path / "outline_selector.feature"
+    feature_file.write_text(
+        """
+Feature: Categories
+
+Scenario: Set every category
+When I set the category to <category>
+
+Examples:
+| category    |
+| alpha       |
+| beta group  |
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    models = [parse_robot_file(robot_file), parse_robot_file(feature_file)]
+
+    variables = {
+        normalize_variable_name("${category alpha}"): _make_variable(
+            "${category alpha}",
+        ),
+        normalize_variable_name("${category beta group}"): _make_variable(
+            "${category beta group}",
+        ),
+        normalize_variable_name("${category gamma}"): _make_variable(
+            "${category gamma}",
+        ),
+    }
+
+    context_collector = RobotVisitorContextLiterals()
+    for model in models:
+        context_collector.visit(model)
+
+    visitor = RobotVisitorVariableUses(variables)
+    for selector_name, literals in (
+        context_collector.get_selector_context_literals().items()
+    ):
+        visitor.register_selector_context_literals(selector_name, literals)
+    for model in models:
+        visitor.visit(model)
+
+    assert variables[normalize_variable_name("${category alpha}")].use_count == 1
+    assert (
+        variables[normalize_variable_name("${category beta group}")].use_count == 1
+    )
+    assert variables[normalize_variable_name("${category gamma}")].use_count == 0
+
+
+def test_dynamic_selector_literals_are_not_widened_by_other_selectors(
     tmp_path: Path,
 ):
-    robot_file = tmp_path / "merge_selector_context.resource"
+    robot_file = tmp_path / "scoped_selector_context.resource"
     robot_file.write_text(
         """
 *** Keywords ***
@@ -387,7 +446,82 @@ Select Option
 
     assert variables[normalize_variable_name("${option alpha}")].use_count == 1
     assert variables[normalize_variable_name("${option beta}")].use_count == 1
-    assert variables[normalize_variable_name("${option gamma}")].use_count == 1
+    assert variables[normalize_variable_name("${option gamma}")].use_count == 0
+
+
+def test_embedded_keyword_call_literals_are_scoped_to_their_argument(
+    tmp_path: Path,
+):
+    robot_file = tmp_path / "scoped_embedded_literals.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Add Option ${option name}
+    Click    ${option ${option name}}
+
+Open Item By Type ${item type}
+    Log    ${item type}
+
+Run Scenario
+    Add Option Alpha
+    Open Item By Type Beta
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${option alpha}"): _make_variable(
+            "${option alpha}",
+        ),
+        normalize_variable_name("${option beta}"): _make_variable(
+            "${option beta}",
+        ),
+    }
+
+    context_collector = RobotVisitorContextLiterals()
+    context_collector.visit(model)
+
+    visitor = RobotVisitorVariableUses(variables)
+    for selector_name, literals in (
+        context_collector.get_selector_context_literals().items()
+    ):
+        visitor.register_selector_context_literals(selector_name, literals)
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${option alpha}")].use_count == 1
+    assert variables[normalize_variable_name("${option beta}")].use_count == 0
+
+
+def test_dynamic_selector_with_extended_syntax_uses_base_name(tmp_path: Path):
+    robot_file = tmp_path / "extended_selector.resource"
+    robot_file.write_text(
+        """
+*** Keywords ***
+Choose The ${file type} File Type
+    Click    ${${file type.lower()} checkbox}
+""".lstrip(),
+        encoding="utf8",
+    )
+
+    model = parse_robot_file(robot_file)
+
+    variables = {
+        normalize_variable_name("${alpha checkbox}"): _make_variable(
+            "${alpha checkbox}",
+        ),
+        normalize_variable_name("${beta checkbox}"): _make_variable(
+            "${beta checkbox}",
+        ),
+    }
+
+    visitor = RobotVisitorVariableUses(variables)
+    visitor.register_selector_context_literals("file type", ["alpha"])
+    visitor.visit(model)
+
+    assert variables[normalize_variable_name("${alpha checkbox}")].use_count == 1
+    assert variables[normalize_variable_name("${beta checkbox}")].use_count == 0
 
 
 def test_dynamic_dotted_selector_counts_dictionary_root_with_prefixed_env(
